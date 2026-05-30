@@ -1,0 +1,41 @@
+# Dependencies
+node_modules/
+.venv/
+venv/
+
+# Build outputs
+dist/
+build/
+*.egg-info/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# AI sandbox (never commit sandbox copies)
+*-eval/
+*-uat/
+*-ai/
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+
+# Evidence (temporary, move to docs/evidence/ for permanent storage)
+evals/evidence/
+
+# Secrets
+.env
+.env.local

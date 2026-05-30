@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "project_version": "0.1.0",
+  "kit_template_version": "0.2.0",
+  "version_source": ".kit/version.json",
+  "sync_targets": [
+    "README.md",
+    "CLAUDE.md",
+    ".kit/config.json",
+    ".test/config.json",
+    ".plan/SPEC.md",
+    ".workflow/README.md",
+    "package.json",
+    "git tag or release name"
+  ],
+  "git_remote": "",
+  "git_ref": "",
+  "last_updated": "2026-05-30"
+}

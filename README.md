@@ -1,10 +1,27 @@
 # KIT Skills
 
-> Project version: `0.2.0`
+> Project version: `0.3.0`
 
 KIT Skills 是一个产品语言驱动开发的 skill 包。
 
 用户用自然语言讲产品目标，AI 负责追问、建档、拆任务、记录技术路线、跑验证。用户不需要手填 PRD/SPEC/CHECKLIST。
+
+## 四命令心智模型
+
+KIT v2.0 提供四个命令，覆盖产品到开发的完整闭环：
+
+```
+/kit       → 产品层（建档 / 归档 / 脑暴 / 沙盒）
+/kit-run   → 执行层（编码 / 测试 / 运行）
+/kit-check → 质量层（检查 / 研究 / 规划）
+/kit-loop  → 自动巡航（自我迭代 / 时间盒）
+```
+
+飞轮：
+
+```
+/kit init → /kit brainstorm → /kit-run start → /kit-check diff → [用户确认] → 修复 → 回归 → /kit archive
+```
 
 ## 核心用途
 
@@ -17,6 +34,8 @@ KIT Skills 是一个产品语言驱动开发的 skill 包。
 - 沙盒模板：3 套核心模板（default/data-ml/fullstack），每套含 README.md + TEST.md。
 - 多轮多组实验：V1/V2/V3 × group-a/b/c，最多 3 轮，批量确认。
 - 心跳监控：按任务类型预设阈值，自动重试 3 次。
+- 质量飞轮：内置编码门禁 + 发散检查 + 回归验证。
+- Vibe Coding 反模式检测：emoji 图标、硬编码颜色、mock 残留、z-index 战争等 21 项。
 
 KIT 不亲自做 deep research、QA、浏览器自动化、发布平台操作、多 Agent 执行、SDK 业务调用。它负责发现这些能力是否需要，检查宿主/项目里有没有对应 skill，再把路由和证据写进 SPEC/CHECKLIST。
 
@@ -36,6 +55,17 @@ kit-skills/
   bin/spec-loop-kit.mjs
   templates/
   knowledge/
+  modes/
+    kit.md
+    run.md
+    check.md
+    loop.md
+  quality/
+    pre-code.md
+    post-code.md
+    ui.md
+    data.md
+    api.md
 ```
 
 ## 安装

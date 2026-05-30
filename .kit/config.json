@@ -1,7 +1,7 @@
 {
   "project_name": "kit-skills",
   "current_goal": "Public portable KIT skill package for product-language-driven AI development",
-  "project_version": "0.1.0",
+  "project_version": "0.3.0",
   "stage": "public-skill-package",
   "profile": "skill-package",
   "progress": 90,

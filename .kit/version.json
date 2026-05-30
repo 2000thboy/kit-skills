@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
-  "project_version": "0.2.0",
-  "kit_template_version": "0.2.0",
+  "project_version": "0.3.0",
+  "kit_template_version": "0.3.0",
   "version_source": ".kit/version.json",
   "sync_targets": [
     "README.md",

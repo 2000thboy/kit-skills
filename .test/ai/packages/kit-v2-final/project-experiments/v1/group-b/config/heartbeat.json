@@ -1,0 +1,9 @@
+{
+  "task_type": "default",
+  "interval": 30,
+  "timeout": 120,
+  "retries": 3,
+  "retry_count": 0,
+  "status": "active",
+  "last_check": null
+}

@@ -1882,6 +1882,15 @@ function printUsage() {
   console.log("    Run the sub-agent launch checklist against the specified cwd.");
   console.log("    --experiment: enable experiment-specific checks (VARIABLES.md, disk space).");
   console.log("    --long-task:  enable long-task checks (heartbeat monitoring).");
+  console.log("  spec-loop-kit run [--help]");
+  console.log("    Execution layer helper for /kit-run. Reads modes/run.md and quality/pre-code.md gates.");
+  console.log("    Use this to print the run-mode reference or validate pre-code readiness.");
+  console.log("  spec-loop-kit check [--help]");
+  console.log("    Quality layer helper for /kit-check. Reads modes/check.md and quality/ definitions.");
+  console.log("    Use this to print the check-mode reference or run a quick self-check.");
+  console.log("  spec-loop-kit loop [--help]");
+  console.log("    Autonomous cruise helper for /kit-loop. Reads modes/loop.md for checkpoint and scope rules.");
+  console.log("    Use this to print the loop-mode reference or validate loop configuration.");
 }
 
 try {
@@ -1908,6 +1917,110 @@ try {
     }
     const failCount = results.filter((r) => r.status === "fail").length;
     process.exit(failCount > 0 ? 2 : 0);
+  } else if (args.command === "run") {
+    if (args.help) {
+      console.log("spec-loop-kit run — Execution layer helper for /kit-run");
+      console.log("");
+      console.log("This command prints the run-mode reference and validates pre-code readiness.");
+      console.log("It does not execute code; it guides the AI through modes/run.md and quality/pre-code.md.");
+      console.log("");
+      console.log("Pre-code 5-step gate:");
+      console.log("  1. Research the tech stack (check official docs, do not guess APIs).");
+      console.log("  2. Read project config (tsconfig, lint rules, .env).");
+      console.log("  3. Declare UI toolchain (lock icon library: Lucide/Heroicons/Tabler).");
+      console.log("  4. Confirm API contract and design tokens.");
+      console.log("  5. Establish page structure + verify build with zero errors.");
+      console.log("");
+      console.log("File-write 4-item self-check:");
+      console.log("  [ ] Is 'use client' necessary?");
+      console.log("  [ ] Icons come from the declared icon library (not emoji).");
+      console.log("  [ ] Colors come from design tokens (not hard-coded hex).");
+      console.log("  [ ] Import paths are correct and API paths match architecture.");
+      console.log("");
+      console.log("Frontend-first flow:");
+      console.log("  1. Implement frontend + UI first (based on docs/ui-ux/).");
+      console.log("  2. Screenshot check (preview confirmation gate).");
+      console.log("  3. User confirms UI.");
+      console.log("  4. Then implement backend + integration.");
+      console.log("");
+      console.log("Implementation closure 5-item check:");
+      console.log("  1. Build has zero errors.");
+      console.log("  2. Lint has zero errors.");
+      console.log("  3. No console red errors.");
+      console.log("  4. New code connects to real call chains.");
+      console.log("  5. New logs/alerts verify real path triggers.");
+      process.exit(0);
+    }
+    // Print reference and exit; actual execution is handled by the AI reading modes/run.md
+    console.log("Run mode reference loaded. The AI should read modes/run.md and quality/pre-code.md for full behavior.");
+    console.log("Use --help for a quick reference of the gates and checks.");
+    process.exit(0);
+  } else if (args.command === "check") {
+    if (args.help) {
+      console.log("spec-loop-kit check — Quality layer helper for /kit-check");
+      console.log("");
+      console.log("This command prints the check-mode reference and runs a quick self-check.");
+      console.log("Full quality flywheel behavior is in modes/check.md and quality/ definitions.");
+      console.log("");
+      console.log("Quality flywheel:");
+      console.log("  Inspect -> Produce report -> [User confirms] -> Fix -> [User confirms] -> Regression check -> Archive");
+      console.log("");
+      console.log("Divergent inspection (when user reports one issue, check all related):");
+      console.log("  User: 'Button position is wrong' -> Check all buttons, forms, mobile, z-index");
+      console.log("  User: 'Mock data found' -> Check all API calls, loading states, error handling, empty states");
+      console.log("");
+      console.log("Vibe Coding 18-item checklist (see knowledge/anti-patterns.md):");
+      console.log("  UI:  z-index wars, overflow, responsive, text truncation, loading/mock, empty state");
+      console.log("  Data: real API vs mock, CRUD backend, form persistence, refresh survival");
+      console.log("  Function: button behavior, route pages, form validation, link navigation");
+      console.log("");
+      console.log("Grading levels:");
+      console.log("  L1 Static analysis (auto): unused imports, type errors, build failures");
+      console.log("  L2 Build-time check (auto): console errors, API contract mismatch, mock residue");
+      console.log("  L3 Browser check (semi-auto): generate checklist -> user confirms -> run Playwright");
+      console.log("");
+      console.log("Adaptive exit:");
+      console.log("  - 2 consecutive rounds with no new issues -> converged exit");
+      console.log("  - Severity downgrade (P0->P1->P2) -> gradual exit");
+      console.log("  - User says 'enough' -> immediate exit");
+      console.log("  - Max rounds: default 3, configurable");
+      process.exit(0);
+    }
+    console.log("Check mode reference loaded. The AI should read modes/check.md and quality/ for full behavior.");
+    console.log("Use --help for a quick reference of the flywheel and checklist.");
+    process.exit(0);
+  } else if (args.command === "loop") {
+    if (args.help) {
+      console.log("spec-loop-kit loop — Autonomous cruise helper for /kit-loop");
+      console.log("");
+      console.log("This command prints the loop-mode reference and validates loop configuration.");
+      console.log("Full autonomous cruise behavior is in modes/loop.md.");
+      console.log("");
+      console.log("Loop workflow:");
+      console.log("  /kit-loop <duration> -> User confirms scope -> Start -> [Checkpoint every 4h] ->");
+      console.log("  Auto /kit-check diff -> Fix -> Continue -> [User can stop anytime] -> Final report");
+      console.log("");
+      console.log("Scope boundaries:");
+      console.log("  - Authorized fix range (files, directories, issue severity)");
+      console.log("  - Checkpoint frequency (default: every 4 hours)");
+      console.log("  - Notification method (console, file, optional external)");
+      console.log("  - Termination conditions (time, milestone, issue zero, user stop)");
+      console.log("");
+      console.log("Evidence trail:");
+      console.log("  - All fixes logged to .kit/loop-state.md");
+      console.log("  - Checkpoints produce reports under .test/ai/reports/");
+      console.log("  - Rollback plan recorded before risky changes");
+      console.log("");
+      console.log("Safety rules:");
+      console.log("  - Never auto-fix outside authorized range");
+      console.log("  - Always report before fixing P0 issues");
+      console.log("  - User stop is immediate and honored");
+      console.log("  - Max 3 auto-retry per issue, then escalate to user");
+      process.exit(0);
+    }
+    console.log("Loop mode reference loaded. The AI should read modes/loop.md for full behavior.");
+    console.log("Use --help for a quick reference of the cruise workflow and safety rules.");
+    process.exit(0);
   } else {
     printUsage();
     process.exit(args.command ? 1 : 0);

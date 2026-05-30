@@ -1,7 +1,7 @@
 # Test Package — kit-skills
 
-> Project version: `0.1.0`
-> KIT template version: `0.1.0`
+> Project version: `0.3.0`
+> KIT template version: `0.3.0`
 > Host: `codex`
 > Updated: `2026-05-28`
 
