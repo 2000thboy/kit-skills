@@ -49,7 +49,7 @@ Do not copy OMC into KIT. KIT owns product-to-development framing, current proje
 
 | Capability | Routed To | When |
 |-----------|-----------|------|
-| Deep research / external lookup | `deep-research`, `external-context` | Market/API/docs investigation needed |
+| Deep research / external lookup | `deep-research` | Market/API/docs investigation needed |
 | Consensus planning / high-risk review | `omc-plan`, `ralplan` | Planning needs external validation |
 | **Autonomous implementation** | **`ralph`** (default), `ultrawork` (parallel), `autopilot` (full-auto) | After SPEC is approved and CHECKLIST is ready |
 | Code review | `code-review` | After implementation completes |
@@ -77,14 +77,25 @@ kit-skills/
   agents/openai.yaml
   bin/spec-loop-kit.mjs
   templates/
+    kit/
+      version.json         # Template version contract
+      config.json          # Project status snapshot template
+      decisions.md         # Key decisions log template
+      blockers.json        # Active blockers template
   knowledge/
 ```
 
 Use the bundled helper from the installed skill root when available:
 
 ```powershell
+# --level: 0-1=quick (<1 day), 2=standard (2-5 days), 3-4=deep (1+ weeks)
 node <kit-skills-root>\bin\spec-loop-kit.mjs init --cwd <target> --owner <owner> --level <0-4>
+# --level: 0-1=quick (<1 day), 2=standard (2-5 days), 3-4=deep (1+ weeks)
 node <kit-skills-root>\bin\spec-loop-kit.mjs init --cwd <target> --owner <owner> --level <0-4> --host claude
+# --template: minimal | standard | full
+node <kit-skills-root>\bin\spec-loop-kit.mjs init --cwd <target> --owner <owner> --level 2 --template full
+# --experiment: enable multi-round multi-group experiment framework
+node <kit-skills-root>\bin\spec-loop-kit.mjs init --cwd <target> --owner <owner> --level 2 --experiment
 node <kit-skills-root>\bin\spec-loop-kit.mjs validate --cwd <target> --profile auto
 node <kit-skills-root>\bin\spec-loop-kit.mjs audit --cwd <target> --json
 ```
@@ -207,12 +218,19 @@ Ask at most 1-2 sharp questions when classification is unclear. The questions sh
 Required classification output:
 
 - what the user is probably building
+- **estimated scale: `quick` / `standard` / `deep`** — inferred from scope description, user hints, and complexity signals; user may override
 - why that classification fits
-- recommended default path
+- recommended default path (adjusted by scale)
 - alternatives and how the result would differ
 - what can still be reversed later
 - what becomes expensive or no-return after implementation starts
 - whether to 建档 now, brainstorm more, or split into a separate project
+
+**Scale-aware flow adjustments:**
+
+- `quick` (<1 day): merge PRD+SPEC+CHECKLIST into a single `PLAN.md`; skip `.workflow/` presets, Capability Inventory, and sandbox isolation unless explicitly requested; 1 round of brainstorm at most
+- `standard` (2-5 days): full `.plan/` trio; `.kit/` and `.workflow/` as normal; eval sandbox optional; 1-2 rounds of brainstorm
+- `deep` (1+ weeks): full `.plan/` trio plus Architecture Review gate; mandatory `.kit/`, `.workflow/`, and Risk Ledger when model/agent scope exists; eval+uat sandboxes; 2+ rounds of brainstorm; phased delivery checkpoints
 
 Framework routing defaults:
 
@@ -319,6 +337,7 @@ evals/                   # AI full-program self-test (on-demand, see `evals/` se
 Preferred bundled helper when available:
 
 ```powershell
+# --level: 0-1=quick (<1 day), 2=standard (2-5 days), 3-4=deep (1+ weeks)
 node <kit-skills-root>\bin\spec-loop-kit.mjs init --cwd <target> --owner <owner> --level <0-4>
 ```
 
@@ -430,11 +449,19 @@ Default to one recommended path. Mention rejected alternatives only when they ma
 
 ## New Project Standard
 
-For new repos, empty projects, reusable starters, or full SDK/framework setup, create a complete but lean project loop:
+For new repos, empty projects, reusable starters, or full SDK/framework setup, create a complete but lean project loop.
+
+**Scale-aware creation:** The depth of the initial structure depends on the project's inferred scale:
+
+- `quick` (<1 day): merge PRD, SPEC, and CHECKLIST into a single `.plan/PLAN.md`; skip `.workflow/` presets and `docs/` unless explicitly needed; `.test/` only when required; no sandbox isolation
+- `standard` (2-5 days): full `.plan/` trio (PRD.md, SPEC.md, CHECKLIST.md); `.kit/`, `.workflow/`, `.test/`, and `docs/` as normal; eval sandbox optional
+- `deep` (1+ weeks): full structure plus mandatory Architecture Review gate, Risk Ledger when model/agent scope exists, `tests/`, `evals/`, and phased delivery checkpoints in CHECKLIST
+
+For all scales:
 
 - inspect the target repo or parent directory before writing
 - inspect existing `package.json`, `pyproject.toml`, `go.mod`, `pubspec.yaml`, `AGENTS.md`, `CLAUDE.md`, `.codex`, `.claude`, `.opencode`, `.kit`, and `.plan` when present
-- write `.plan/PRD.md` with target user, problem, scope, non-goals, acceptance, constraints, owner, and schedule assumptions
+- write `.plan/PRD.md` with target user, problem, scope, non-goals, acceptance, constraints, owner, and schedule assumptions (or `.plan/PLAN.md` for `quick` scale)
 - write `.plan/SPEC.md` with architecture, interfaces, data, UI constraints when relevant, and quality gates
 - write `.plan/CHECKLIST.md` with executable ordered tasks, owners/agents, status, acceptance, and evidence commands
 - create `.kit/` as the project status entry directory; do not assume JSON unless the project already uses JSON
@@ -452,6 +479,7 @@ Use mature local patterns before inventing new framework pieces. Do not create a
 Preferred bundled helper when available:
 
 ```powershell
+# --level: 0-1=quick (<1 day), 2=standard (2-5 days), 3-4=deep (1+ weeks)
 node <kit-skills-root>\bin\spec-loop-kit.mjs init --cwd <target> --owner <owner> --level <0-4>
 ```
 
@@ -961,7 +989,7 @@ If a needed business skill is missing and has a known source, recommend installi
 
 Default recommendations:
 
-- research/docs lookup -> `deep-research` first for file search plus file-informed web research; use `external-context` or a project research runner only when that route fits better
+- research/docs lookup -> `deep-research` for file search plus file-informed web research. `/research`, deep search, and deepsearch never route directly to a project runner; use a project research runner only as an explicit project-named entry or as a `deep-research` substep when the project already owns one.
 - QA/fix loop -> `ultraqa`, `auto-verify`, project test runner, or equivalent
 - browser/logged-in platform evidence -> project standard first, then OpenCLI/browser skill; Playwright only for E2E or documented auth-state strategy
 - publishing/external delivery -> domain-specific publisher skill or project runner
@@ -1313,6 +1341,9 @@ Use profile-specific P0/P1/P2 signals instead of one giant checklist. P0 blocks 
 - P0: no clear stop gate for user/platform/manual acceptance
 - P1: missing `.kit/` when the project is meant to be KIT-managed
 - P1: product goal, target user, or observable acceptance is vague
+- P1: **project scale not recorded** (`quick`/`standard`/`deep`) or scale mismatch with actual structure depth
+- P1: **quick-scale project with excessive ceremony** (full PRD/SPEC/CHECKLIST when a single PLAN.md would suffice)
+- P1: **deep-scale project missing mandatory gates** (Architecture Review, Risk Ledger, or phased delivery checkpoints)
 - P1: routed research/QA/execution/browser workflow implied but owner/evidence/fallback not recorded
 - P2: owner, due date, final due date, or next tasks are empty
 
@@ -1336,6 +1367,161 @@ Use profile-specific P0/P1/P2 signals instead of one giant checklist. P0 blocks 
 - P1: quota/deferred behavior not documented
 - P2: delivery adapters, downstream handoff, or post-run data fetch evidence not documented
 
+## Multi-Round Multi-Group Experiment Framework
+
+Use this framework when the user explicitly declares "需要做对照实验" or when a `deep`-scale project requires validated comparison of multiple approaches.
+
+### Naming Convention
+
+- **Round**: `v1`, `v2`, `v3` (maximum 3 rounds)
+- **Group**: `group-a` (baseline), `group-b` (variable 1), `group-c` (variable 2), etc.
+- Full path: `project-experiments/v1/group-a/`
+
+### Directory Structure
+
+```text
+project-experiments/           # Experiment root (sibling to project/)
+  v1/                          # Round 1
+    group-a/                   # Baseline group
+      src/                     # Source copy (cp -r from main project, then rm -rf .git)
+      config/                  # Group-specific config overrides
+      data/                    # Group-specific data
+      results/                 # Group run results
+      TEST.md                  # Group test instructions
+    group-b/                   # Variable group 1
+      ...
+    group-c/                   # Variable group 2 (optional)
+      ...
+    VARIABLES-v1.md            # Round 1 variable log
+    REPORT-v1.md               # Round 1 summary report
+  v2/                          # Round 2 (if needed, max v3)
+    ...
+```
+
+### Isolation Rules (Document Convention, Not Technical Enforcement)
+
+- Each group's `src/` is independent, created via `cp -r` from the main project
+- Groups do not share write directories; avoid cross-reading via naming conventions
+- Experiment results are aggregated through REPORT, not by directly accessing other groups' `results/`
+- Groups run in parallel; failure of one group does not block others
+
+### Batch Confirmation Mode
+
+Before creating the experiment structure, present all group configurations at once for a single user confirmation:
+
+```text
+实验变量配置确认（V1）：
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+基础源码: project/ (commit abc123)
+
+组A（baseline）:
+  • 数据: data/raw/
+  • 参数: epochs=50
+  • 环境: CUDA_VISIBLE_DEVICES=0
+
+组B（变量1）:
+  • 数据: data/augmented/
+  • 参数: epochs=100
+  • 环境: CUDA_VISIBLE_DEVICES=1
+
+组C（变量2）:
+  • 数据: data/synthetic/
+  • 参数: epochs=50, lr=0.01
+  • 环境: CUDA_VISIBLE_DEVICES=2
+
+预期指标: 准确率提升 ≥3%
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+确认请回复"确认"，修改请说明具体组。
+```
+
+### Execution Flow
+
+```text
+User declares "需要做对照实验"
+    ↓
+1. Determine group count (≥2: baseline + variable groups)
+2. Communicate differentiated variables per group → write VARIABLES-v1.md
+3. Batch present all group configs → user confirms once
+4. Create project-experiments/v1/ structure
+5. cp -r main project to group-*/src/, then rm -rf .git
+6. Write TEST.md and config/ for each group
+    ↓
+【Sub-agent Launch Checklist】
+□ Sandbox directories ready
+□ TEST.md in place for each group
+□ VARIABLES-v1.md recorded
+□ User has confirmed all group configs
+□ Main project git status clean
+□ Sufficient disk space
+    ↓
+Launch sub-agents (one per group, parallel)
+    ↓
+Collect results/ from all groups → generate REPORT-v1.md
+    ↓
+User reviews REPORT-v1.md
+    ├─ "继续优化" → design V2 variables → create v2/ → repeat (max v3)
+    ├─ "采用某组" → promote that group's changes to main project
+    └─ "终止实验" → archive project-experiments/ to .plan/archive/
+```
+
+### Heartbeat Monitoring in Experiments
+
+Each group runs with its own independent heartbeat monitor. A single group's timeout or failure does not affect other groups. Heartbeat config is written to each group's `config/heartbeat.json` with task-type preset thresholds. See the Heartbeat Monitoring section below.
+
+## Heartbeat Monitoring
+
+Enable heartbeat monitoring automatically when a background bash task runs for longer than the task-type threshold. This prevents silent task hangs.
+
+### Task-Type Preset Thresholds
+
+| Task Type | Check Interval | Timeout | Typical Use |
+|-----------|---------------|---------|-------------|
+| `default` | 30 seconds | 120 seconds | General commands, file operations |
+| `build` | 60 seconds | 600 seconds | Compilation, bundling, long builds |
+| `training` | 300 seconds | 1800 seconds | Model training, data processing |
+| `download` | 60 seconds | 300 seconds | Network downloads, package installs |
+
+Users may override with `--custom-interval` and `--custom-timeout` when invoking the watchdog.
+
+### Retry Mechanism
+
+When a task exceeds timeout or its PID disappears:
+
+```text
+[Abnormal] Timeout or PID lost
+    ├─ 1st: SIGTERM → wait 5s → SIGKILL if still alive → restart (retry=1)
+    ├─ 2nd: SIGTERM → wait 5s → SIGKILL if still alive → restart (retry=2)
+    ├─ 3rd: SIGTERM → wait 5s → SIGKILL if still alive → mark failed
+```
+
+### 3-Failure Handling
+
+After 3 retries, the task is marked as failed:
+
+- Write to `.kit/blockers.json`:
+  ```json
+  {
+    "type": "heartbeat_timeout",
+    "command": "<the command that failed>",
+    "retries": 3,
+    "timestamp": "2026-05-30T12:00:00Z",
+    "task_type": "training"
+  }
+  ```
+- Notify user: "任务卡死，已重试3次，请检查权限/资源/网络"
+- Suggest manual diagnostic commands
+
+### Implementation
+
+**Primary**: Use Claude Code `Monitor` tool natively when available. Pass the task type to select the correct preset thresholds.
+
+**Fallback**: Use `.workflow/scripts/heartbeat-watchdog.ps1` (Windows) or `.workflow/scripts/heartbeat-watchdog.sh` (Unix), invoked with:
+```powershell
+heartbeat-watchdog.ps1 --pid <PID> --task-type <default|build|training|download> [--custom-interval <sec>] [--custom-timeout <sec>]
+```
+
+The watchdog checks stdout output and PID liveness at the configured interval. No output within the timeout window triggers the retry sequence.
+
 ### `archive-cleanup`
 
 - P0: active facts or source code proposed for archive without reference check
@@ -1344,6 +1530,37 @@ Use profile-specific P0/P1/P2 signals instead of one giant checklist. P0 blocks 
 - P1: active process state archived without current-state check
 - P1: hardcoded local paths, browser profiles, account/platform IDs, or secret-like literals left unclassified
 - P2: stale process artifacts left unclassified
+
+## Sub-Agent Launch Checklist
+
+硬性顺序：沙盒就绪 → TEST.md 就位 → 才启动子代理
+
+扩展检查清单（8项）：
+
+- [ ] 沙盒目录存在且为空（或已清理）
+- [ ] TEST.md 存在于沙盒根目录
+- [ ] README.md 存在于沙盒根目录
+- [ ] 主项目 git 状态干净（无未提交更改）
+- [ ] VARIABLES.md 已记录且用户已确认（实验场景）
+- [ ] 磁盘空间充足（实验场景：预估每组大小 × 组数）
+- [ ] 依赖环境已就绪（Node/Python/CUDA 等）
+- [ ] 心跳监控已配置（长任务场景）
+- [ ] 子代理的 cwd 指向沙盒（非主项目）
+
+**执行顺序**：
+
+```
+1. 创建沙盒目录（git clone 或 cp -r）
+2. 将模板 README.md + TEST.md 复制到沙盒根目录
+3. 运行检查清单（8项逐项确认）
+4. ──────────────────────────────
+5. 才启动子代理（Agent tool + isolation:"worktree" 或指定 cwd）
+```
+
+**隔离规则**：
+- 子代理只读 `project/`，只写 `project-eval/`
+- 子代理不得在沙盒外创建或修改文件
+- 子代理的 stdout/stderr 应定向到 `logs/` 以便监控
 
 ## Workflow
 

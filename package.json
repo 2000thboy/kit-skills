@@ -1,6 +1,6 @@
 {
   "name": "kit-skills",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Portable product-language KIT/spec skill with bundled spec-loop helper and validation profiles.",
   "type": "module",
   "bin": {

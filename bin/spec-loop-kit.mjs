@@ -23,6 +23,15 @@ const VALID_HOSTS = new Set([
   "opencode",
   "agents"
 ]);
+const VALID_LEVELS = new Set(["0", "1", "2", "3", "4"]);
+const VALID_TEMPLATES = new Set(["default", "data-ml", "fullstack"]);
+const LEVEL_SCALE_MAP = {
+  "0": "quick",
+  "1": "quick",
+  "2": "standard",
+  "3": "deep",
+  "4": "deep"
+};
 
 function parseArgs(argv) {
   const args = {
@@ -34,9 +43,31 @@ function parseArgs(argv) {
     host: "auto",
     force: false,
     json: false,
-    workflow: false
+    workflow: false,
+    experiment: false,
+    template: "default",
+    withTest: false,
+    withEval: false,
+    withCron: false,
+    withUser: false,
+    withSoul: false,
+    longTask: false
   };
   for (let i = 3; i < argv.length; i += 1) {
+    function requireValue(flag) {
+      const next = argv[i + 1];
+      if (next === undefined || next.startsWith("-")) {
+        const hints = {
+          "--level": "--level requires a value. Must be one of: 0, 1, 2, 3, 4",
+          "--template": "--template requires a value. Must be one of: default, data-ml, fullstack",
+          "--profile": `--profile requires a value. Must be one of: ${PROFILE_LIST}`,
+          "--host": "--host requires a value. Must be one of: auto, generic, codex, claude, opencode, agents"
+        };
+        throw new Error(hints[flag] || `${flag} requires a value.`);
+      }
+      i += 1;
+      return next;
+    }
     const value = argv[i];
     if (value === "--force") {
       args.force = true;
@@ -44,16 +75,32 @@ function parseArgs(argv) {
       args.json = true;
     } else if (value === "--workflow") {
       args.workflow = true;
+    } else if (value === "--experiment") {
+      args.experiment = true;
+    } else if (value === "--with-test") {
+      args.withTest = true;
+    } else if (value === "--with-eval") {
+      args.withEval = true;
+    } else if (value === "--with-cron") {
+      args.withCron = true;
+    } else if (value === "--with-user") {
+      args.withUser = true;
+    } else if (value === "--with-soul") {
+      args.withSoul = true;
+    } else if (value === "--long-task") {
+      args.longTask = true;
+    } else if (value === "--template") {
+      args.template = normalizeTemplate(requireValue("--template"));
     } else if (value === "--owner") {
-      args.owner = argv[++i] || args.owner;
+      args.owner = requireValue("--owner");
     } else if (value === "--level") {
-      args.level = argv[++i] || args.level;
+      args.level = normalizeLevel(requireValue("--level"));
     } else if (value === "--profile") {
-      args.profile = argv[++i] || args.profile;
+      args.profile = normalizeProfile(requireValue("--profile"));
     } else if (value === "--host") {
-      args.host = argv[++i] || args.host;
+      args.host = normalizeHost(requireValue("--host"));
     } else if (value === "--cwd") {
-      args.cwd = path.resolve(argv[++i] || args.cwd);
+      args.cwd = path.resolve(requireValue("--cwd"));
     } else if (value === "--help" || value === "-h") {
       args.help = true;
     } else if (value?.startsWith("-")) {
@@ -77,7 +124,7 @@ function readText(cwd, rel) {
 }
 
 function render(text, data) {
-  return text.replaceAll("{{project_name}}", data.projectName)
+  const result = text.replaceAll("{{project_name}}", data.projectName)
     .replaceAll("{{owner}}", data.owner)
     .replaceAll("{{level}}", data.level)
     .replaceAll("{{profile}}", data.profile)
@@ -86,10 +133,19 @@ function render(text, data) {
     .replaceAll("{{host_entry_role}}", data.hostEntryRole)
     .replaceAll("{{date}}", data.date)
     .replaceAll("{{kit_version}}", data.kitVersion)
-    .replaceAll("{{project_version}}", data.projectVersion);
+    .replaceAll("{{project_version}}", data.projectVersion)
+    .replaceAll("{{scale}}", data.scale);
+  const leftover = result.match(/\{\{[^}]+\}\}/g);
+  if (leftover) {
+    console.warn(`[spec-loop-kit] Warning: unrendered placeholders in template: ${leftover.join(", ")}`);
+  }
+  return result;
 }
 
 function writeTemplate(source, target, data, force) {
+  if (!fs.existsSync(source)) {
+    return { target, status: "error", error: `Template source not found: ${source}` };
+  }
   const existed = fs.existsSync(target);
   if (existed && !force) {
     return { target, status: "skipped" };
@@ -112,6 +168,24 @@ function normalizeHost(host) {
     throw new Error(`Invalid host: ${host}`);
   }
   return host;
+}
+
+function normalizeLevel(level) {
+  if (!VALID_LEVELS.has(level)) {
+    throw new Error(`Invalid level: ${level}. Must be one of: 0, 1, 2, 3, 4`);
+  }
+  return level;
+}
+
+function normalizeTemplate(template) {
+  if (!VALID_TEMPLATES.has(template)) {
+    throw new Error(`Invalid template: ${template}. Must be one of: default, data-ml, fullstack`);
+  }
+  return template;
+}
+
+function scaleFromLevel(level) {
+  return LEVEL_SCALE_MAP[level] || "standard";
 }
 
 function detectHost(cwd, requested) {
@@ -547,8 +621,12 @@ function checkModelAgentDevelopmentRisks(cwd, report, corpus) {
   const suspiciousUserFiles = listFilesRecursive(userLaneDir)
     .filter((file) => !["README.md", ".gitkeep"].includes(path.basename(file)))
     .filter((file) => {
-      const text = fs.readFileSync(file, "utf8");
-      return includesAny(text, ["AI generated feedback", "model-generated feedback", "mock user", "模拟用户", "AI 模拟用户"]);
+      try {
+        const text = fs.readFileSync(file, "utf8");
+        return includesAny(text, ["AI generated feedback", "model-generated feedback", "mock user", "模拟用户", "AI 模拟用户"]);
+      } catch {
+        return false;
+      }
     })
     .map((file) => path.relative(cwd, file));
   if (suspiciousUserFiles.length > 0) {
@@ -781,7 +859,6 @@ function checkCapabilitySkillInventory(cwd, report, corpus) {
   const impliedRoutedCapability = includesAny(corpus, [
     "deep research",
     "deep-research",
-    "external-context",
     "QA",
     "quality assurance",
     "ultraqa",
@@ -1251,28 +1328,68 @@ function initProject(args) {
     hostEntryRole: hostEntryRoleFor(host),
     date: new Date().toISOString().slice(0, 10),
     kitVersion: parseJsonFile(root, "package.json")?.version || "0.0.0",
-    projectVersion: parseJsonFile(cwd, "package.json")?.version || "0.1.0"
+    projectVersion: parseJsonFile(cwd, "package.json")?.version || "0.1.0",
+    scale: scaleFromLevel(args.level)
   };
 
   ensureDir(cwd);
-  // Core directories — always created
-  const coreDirs = [
+  const scale = scaleFromLevel(args.level);
+
+  // Core directories — scale-aware creation
+  let coreDirs = [
     ".plan",
     ".plan/runs",
     ".plan/archive",
-    ".kit",
-    "docs/architecture",
-    "docs/ui-ux"
+    ".kit"
   ];
+
+  if (scale === "quick") {
+    // quick (level 0-1): minimal structure, skip .workflow presets and docs
+    coreDirs = coreDirs.concat([
+      ".test",
+      ".test/ai",
+      ".test/user"
+    ]);
+  } else if (scale === "standard") {
+    // standard (level 2): current default structure
+    coreDirs = coreDirs.concat([
+      ".workflow",
+      ".workflow/scripts",
+      ".test",
+      ".test/ai",
+      ".test/user",
+      "docs/architecture",
+      "docs/ui-ux"
+    ]);
+  } else if (scale === "deep") {
+    // deep (level 3-4): full structure with evals and tests auto-created
+    coreDirs = coreDirs.concat([
+      ".workflow",
+      ".workflow/scripts",
+      ".test",
+      ".test/ai",
+      ".test/user",
+      "docs/architecture",
+      "docs/ui-ux",
+      "tests",
+      "tests/unit",
+      "tests/integration",
+      "tests/acceptance",
+      "evals",
+      "evals/run",
+      "evals/reports",
+      "evals/evidence"
+    ]);
+  }
   for (const dir of coreDirs) ensureDir(path.join(cwd, dir));
 
-  // Optional directories — created based on flags
+  // Optional directories — created based on flags (can override scale defaults)
   if (args.withWorkflow || args.workflow) {
     const workflowDirs = [".workflow", ".workflow/scripts"];
     for (const dir of workflowDirs) ensureDir(path.join(cwd, dir));
   }
   if (args.withTest) {
-    const testDirs = ["tests"];
+    const testDirs = ["tests", "tests/unit", "tests/integration", "tests/acceptance"];
     for (const dir of testDirs) ensureDir(path.join(cwd, dir));
   }
   if (args.withEval) {
@@ -1283,8 +1400,89 @@ function initProject(args) {
     const cronDirs = [".cron", ".cron/jobs", ".cron/schedules", ".cron/logs"];
     for (const dir of cronDirs) ensureDir(path.join(cwd, dir));
   }
+  if (args.experiment) {
+    ensureDir(path.join(cwd, ".workflow", "scripts"));
+    const expBase = path.join(cwd, "project-experiments", "v1");
+    const expGroups = ["group-a", "group-b", "group-c"];
+    for (const group of expGroups) {
+      const groupBase = path.join(expBase, group);
+      ensureDir(path.join(groupBase, "src"));
+      ensureDir(path.join(groupBase, "config"));
+      ensureDir(path.join(groupBase, "data"));
+      ensureDir(path.join(groupBase, "results"));
+      // Write group-specific TEST.md
+      const groupTestPath = path.join(groupBase, "TEST.md");
+      if (!fs.existsSync(groupTestPath) || args.force) {
+        fs.writeFileSync(groupTestPath, `# ${group.toUpperCase()} Test Instructions\n\n## Run Command\n<!-- Fill in the specific test command for this group -->\n\n## Expected Output\n<!-- Describe the expected output / metrics -->\n\n## Pass Criteria\n<!-- Define what makes this group pass -->\n`, "utf8");
+      }
+      // Write heartbeat config for each group
+      const heartbeatConfig = generateHeartbeatConfig("default");
+      const heartbeatPath = path.join(groupBase, "config", "heartbeat.json");
+      if (!fs.existsSync(heartbeatPath) || args.force) {
+        fs.writeFileSync(heartbeatPath, JSON.stringify({
+          task_type: "default",
+          interval: heartbeatConfig.interval,
+          timeout: heartbeatConfig.timeout,
+          retries: heartbeatConfig.retries,
+          retry_count: 0,
+          status: "active",
+          last_check: null
+        }, null, 2), "utf8");
+      }
+    }
+    ensureDir(path.join(cwd, "project-experiments", "v2"));
+    ensureDir(path.join(cwd, "project-experiments", "v3"));
+    // Write VARIABLES-v1.md template
+    const variablesPath = path.join(expBase, "VARIABLES-v1.md");
+    if (!fs.existsSync(variablesPath) || args.force) {
+      fs.writeFileSync(variablesPath, `# V1 Experiment Variables\n\n## Base Source\n- Project: ${data.projectName}\n- Commit: <!-- git commit hash -->\n\n## Group Configurations\n\n### group-a (baseline)\n- Data: <!-- e.g., data/raw/ -->\n- Config: <!-- e.g., config/baseline.yaml -->\n- Parameters: <!-- key params -->\n\n### group-b (variant 1)\n- Data: <!-- e.g., data/augmented/ -->\n- Config: <!-- e.g., config/variant1.yaml -->\n- Parameters: <!-- key params -->\n\n### group-c (variant 2)\n- Data: <!-- e.g., data/synthetic/ -->\n- Config: <!-- e.g., config/variant2.yaml -->\n- Parameters: <!-- key params -->\n\n## Expected Metrics\n<!-- Define the target metrics and improvement threshold -->\n`, "utf8");
+    }
+    // Write REPORT-v1.md template
+    const reportPath = path.join(expBase, "REPORT-v1.md");
+    if (!fs.existsSync(reportPath) || args.force) {
+      fs.writeFileSync(reportPath, `# V1 Experiment Report\n\n## Summary\n<!-- One-paragraph summary of results -->\n\n## Group Results\n\n### group-a (baseline)\n- Status: <!-- pass / fail -->\n- Key Metrics: <!-- record metrics -->\n- Evidence: <!-- path to evidence -->\n\n### group-b (variant 1)\n- Status: <!-- pass / fail -->\n- Key Metrics: <!-- record metrics -->\n- Evidence: <!-- path to evidence -->\n\n### group-c (variant 2)\n- Status: <!-- pass / fail -->\n- Key Metrics: <!-- record metrics -->\n- Evidence: <!-- path to evidence -->\n\n## Comparison\n<!-- Diff analysis between groups -->\n\n## Conclusion\n<!-- Which group performed best? Should we proceed to V2? -->\n\n## Next Steps\n- [ ] User review and decision\n- [ ] Promote winning group to main project (if applicable)\n- [ ] Design V2 variables (if continuing)\n`, "utf8");
+    }
+    // Write heartbeat watchdog script to .workflow/scripts/
+    const watchdogPath = path.join(cwd, ".workflow", "scripts", "heartbeat-watchdog.ps1");
+    if (!fs.existsSync(watchdogPath) || args.force) {
+      fs.writeFileSync(watchdogPath, generateHeartbeatWatchdogScript(), "utf8");
+    }
+    // Run sub-agent checklist for each experiment group
+    console.log("\n--- Sub-Agent Launch Checklist ---");
+    let totalFails = 0;
+    for (const group of expGroups) {
+      const groupCwd = path.join(expBase, group);
+      const results = runSubAgentChecklist(groupCwd, { experiment: true, groupCount: expGroups.length });
+      const { failCount } = printChecklistReport(results, group);
+      totalFails += failCount;
+      console.log("");
+    }
+    if (totalFails > 0) {
+      console.log(`WARNING: ${totalFails} total fail(s) across groups. Fix before launching sub-agents.`);
+    } else {
+      console.log("All groups passed checklist — safe to launch sub-agents.");
+    }
+  }
 
-  // Core files — always created
+  // Template-specific directories and files — skipped for quick scale (minimal structure)
+  if (scale !== "quick") {
+    const templateDirs = {
+      "default": ["src", "tests", "evals", "logs"],
+      "data-ml": ["data", "data/raw", "data/processed", "notebooks", "models", "results", "src", "tests", "logs"],
+      "fullstack": ["frontend", "frontend/src", "frontend/tests", "backend", "backend/src", "backend/tests", "e2e", "e2e/tests", "e2e/fixtures", "docker", "docs", "logs"]
+    };
+    for (const dir of templateDirs[args.template] || []) {
+      ensureDir(path.join(cwd, dir));
+    }
+  }
+  // Template README.md + TEST.md are always created (project guidance files)
+  const templateFiles = {
+    "default": [["default/README.md", "README.md"], ["default/TEST.md", "TEST.md"]],
+    "data-ml": [["data-ml/README.md", "README.md"], ["data-ml/TEST.md", "TEST.md"]],
+    "fullstack": [["fullstack/README.md", "README.md"], ["fullstack/TEST.md", "TEST.md"]]
+  };
+
+  // Core files — scale-aware creation
   const files = [
     ["root/README.md", "README.md"],
     ["root/.gitignore", ".gitignore"],
@@ -1293,19 +1491,26 @@ function initProject(args) {
     ["plan/SPEC.md", ".plan/SPEC.md"],
     ["plan/CHECKLIST.md", ".plan/CHECKLIST.md"],
     ["kit/config.json", ".kit/config.json"],
-    ["kit/version.json", ".kit/version.json"]
+    ["kit/version.json", ".kit/version.json"],
+    ["test/README.md", ".test/README.md"],
+    ["test/config.json", ".test/config.json"],
+    ["test/user-README.md", ".test/user/README.md"]
   ];
 
-  // Optional files
-  if (args.withWorkflow || args.workflow) {
-    const workflowFiles = [
+  // Workflow files — only for standard and deep scales
+  if (scale !== "quick") {
+    files.push(
       ["workflow/README.md", ".workflow/README.md"],
       ["workflow/status.md", ".workflow/status.md"],
       ["workflow/codex.md", ".workflow/codex.md"],
       ["workflow/workbuddy.md", ".workflow/workbuddy.md"],
       ["workflow/trae-solo.md", ".workflow/trae-solo.md"]
-    ];
-    for (const item of workflowFiles) files.push(item);
+    );
+  }
+
+  // Optional files
+  if (args.withWorkflow || args.workflow) {
+    files.push(["workflow/status.md", ".workflow/status.md"]);
   }
   if (args.withTest) {
     files.push(["tests/README.md", "tests/README.md"]);
@@ -1319,6 +1524,17 @@ function initProject(args) {
   if (args.withSoul) {
     files.push(["root/SOUL.md", "SOUL.md"]);
   }
+
+  // Template-specific files (README.md + TEST.md)
+  const templateFileList = {
+    "default": [["default/README.md", "README.md"], ["default/TEST.md", "TEST.md"]],
+    "data-ml": [["data-ml/README.md", "README.md"], ["data-ml/TEST.md", "TEST.md"]],
+    "fullstack": [["fullstack/README.md", "README.md"], ["fullstack/TEST.md", "TEST.md"]]
+  };
+  for (const [src, dest] of templateFileList[args.template] || []) {
+    files.push([src, dest]);
+  }
+
   const results = files.map(([src, dest]) => writeTemplate(
     path.join(templates, src),
     path.join(cwd, dest),
@@ -1332,14 +1548,340 @@ function initProject(args) {
   }
 }
 
+function runSubAgentChecklist(cwd, options = {}) {
+  const results = [];
+
+  // 1. Check sandbox directory exists and is empty (or cleaned)
+  const sandboxExists = fs.existsSync(cwd);
+  const sandboxEmpty = sandboxExists ? fs.readdirSync(cwd).length === 0 : false;
+  results.push({
+    item: "sandbox_dir",
+    status: sandboxExists && sandboxEmpty ? "pass" : "warn",
+    message: sandboxExists ? (sandboxEmpty ? "OK" : "Directory not empty") : "Missing"
+  });
+
+  // 2. Check TEST.md exists in sandbox root
+  const testMdExists = fs.existsSync(path.join(cwd, "TEST.md"));
+  results.push({
+    item: "test_md",
+    status: testMdExists ? "pass" : "fail",
+    message: testMdExists ? "OK" : "Missing TEST.md"
+  });
+
+  // 3. Check README.md exists in sandbox root
+  const readmeExists = fs.existsSync(path.join(cwd, "README.md"));
+  results.push({
+    item: "readme_md",
+    status: readmeExists ? "pass" : "warn",
+    message: readmeExists ? "OK" : "Missing README.md"
+  });
+
+  // 4. Check git status is clean (if cwd is in a git repo)
+  let gitClean = true;
+  let gitMessage = "Not a git repository or clean";
+  try {
+    const { execSync } = require("node:child_process");
+    execSync("git rev-parse --git-dir", { cwd, stdio: "pipe" });
+    const status = execSync("git status --porcelain", { cwd, encoding: "utf8", stdio: "pipe" });
+    gitClean = status.trim().length === 0;
+    gitMessage = gitClean ? "OK" : `Uncommitted changes: ${status.trim().split("\n").length} file(s)`;
+  } catch {
+    // Not a git repo or git not available
+  }
+  results.push({
+    item: "git_clean",
+    status: gitClean ? "pass" : "warn",
+    message: gitMessage
+  });
+
+  // 5. Check VARIABLES.md is recorded and user confirmed (experiment scenario)
+  if (options.experiment) {
+    const variablesPath = path.join(cwd, "VARIABLES.md");
+    const variablesExists = fs.existsSync(variablesPath);
+    results.push({
+      item: "variables_md",
+      status: variablesExists ? "pass" : "warn",
+      message: variablesExists ? "OK" : "Missing VARIABLES.md (experiment scenario)"
+    });
+  } else {
+    results.push({
+      item: "variables_md",
+      status: "skip",
+      message: "Skipped (not experiment mode)"
+    });
+  }
+
+  // 6. Check disk space is sufficient (experiment scenario: estimate per-group size x group count)
+  if (options.experiment) {
+    let diskOk = true;
+    let diskMessage = "OK";
+    try {
+      const groupCount = options.groupCount || 3;
+      const minSpaceMB = 50 * groupCount;
+      const platform = process.platform;
+      if (platform === "win32") {
+        const drive = path.parse(cwd).root.replace("\\", "");
+        const { execSync } = require("node:child_process");
+        const out = execSync(`wmic logicaldisk where "DeviceID='${drive}'" get FreeSpace /value`, { encoding: "utf8", stdio: "pipe" });
+        const match = out.match(/FreeSpace=(\d+)/);
+        if (match) {
+          const freeMB = parseInt(match[1], 10) / (1024 * 1024);
+          diskOk = freeMB >= minSpaceMB;
+          diskMessage = diskOk ? `OK (${Math.round(freeMB)}MB free)` : `Low disk space (${Math.round(freeMB)}MB free, need ${minSpaceMB}MB)`;
+        }
+      } else {
+        const { execSync } = require("node:child_process");
+        const out = execSync(`df -m "${cwd}" | tail -1`, { encoding: "utf8", stdio: "pipe" });
+        const parts = out.trim().split(/\s+/);
+        const freeMB = parseInt(parts[3], 10);
+        diskOk = freeMB >= minSpaceMB;
+        diskMessage = diskOk ? `OK (${freeMB}MB free)` : `Low disk space (${freeMB}MB free, need ${minSpaceMB}MB)`;
+      }
+    } catch {
+      diskMessage = "Unable to check disk space";
+    }
+    results.push({
+      item: "disk_space",
+      status: diskOk ? "pass" : "warn",
+      message: diskMessage
+    });
+  } else {
+    results.push({
+      item: "disk_space",
+      status: "skip",
+      message: "Skipped (not experiment mode)"
+    });
+  }
+
+  // 7. Check dependency environment is ready (Node/Python/CUDA etc.)
+  let depOk = true;
+  let depMessage = "OK";
+  try {
+    const { execSync } = require("node:child_process");
+    const checks = [];
+    try { execSync("node --version", { stdio: "pipe" }); checks.push("Node"); } catch { /* ignore */ }
+    try { execSync("python --version", { stdio: "pipe" }); checks.push("Python"); } catch {
+      try { execSync("python3 --version", { stdio: "pipe" }); checks.push("Python3"); } catch { /* ignore */ }
+    }
+    try { execSync("nvidia-smi", { stdio: "pipe" }); checks.push("CUDA"); } catch { /* ignore */ }
+    if (checks.length === 0) {
+      depOk = false;
+      depMessage = "No Node/Python/CUDA detected";
+    } else {
+      depMessage = `Found: ${checks.join(", ")}`;
+    }
+  } catch {
+    depMessage = "Unable to check dependencies";
+  }
+  results.push({
+    item: "dependencies",
+    status: depOk ? "pass" : "warn",
+    message: depMessage
+  });
+
+  // 8. Check heartbeat monitoring is configured (long task scenario)
+  if (options.longTask) {
+    const hasHeartbeat = fs.existsSync(path.join(cwd, ".cron")) || fs.existsSync(path.join(cwd, "logs"));
+    results.push({
+      item: "heartbeat",
+      status: hasHeartbeat ? "pass" : "warn",
+      message: hasHeartbeat ? "OK" : "No .cron/ or logs/ found for heartbeat monitoring"
+    });
+  } else {
+    results.push({
+      item: "heartbeat",
+      status: "skip",
+      message: "Skipped (not long task mode)"
+    });
+  }
+
+  // 9. Check sub-agent cwd points to sandbox (not main project)
+  const mainProjectIndicators = [".git", ".plan", ".kit", ".workflow"];
+  const isMainProject = mainProjectIndicators.some((ind) => fs.existsSync(path.join(cwd, ind)));
+  results.push({
+    item: "cwd_is_sandbox",
+    status: isMainProject ? "warn" : "pass",
+    message: isMainProject ? "cwd appears to be main project (has .git/.plan/.kit/.workflow)" : "OK"
+  });
+
+  return results;
+}
+
+function printChecklistReport(results, groupName) {
+  const prefix = groupName ? `[${groupName}] ` : "";
+  console.log(`${prefix}Sub-Agent Launch Checklist`);
+  console.log(`${prefix}${"=".repeat(40)}`);
+  let failCount = 0;
+  let warnCount = 0;
+  for (const r of results) {
+    const icon = r.status === "pass" ? "PASS" : r.status === "fail" ? "FAIL" : r.status === "skip" ? "SKIP" : "WARN";
+    console.log(`${prefix}[${icon}] ${r.item.padEnd(18)} ${r.message}`);
+    if (r.status === "fail") failCount += 1;
+    if (r.status === "warn") warnCount += 1;
+  }
+  console.log(`${prefix}${"=".repeat(40)}`);
+  if (failCount > 0) {
+    console.log(`${prefix}Result: BLOCKED (${failCount} fail, ${warnCount} warn)`);
+    console.log(`${prefix}Action: Fix fail items before launching sub-agents.`);
+  } else if (warnCount > 0) {
+    console.log(`${prefix}Result: WARN (${warnCount} warning(s))`);
+    console.log(`${prefix}Action: Review warnings before launching sub-agents.`);
+  } else {
+    console.log(`${prefix}Result: PASS — safe to launch sub-agents.`);
+  }
+  return { failCount, warnCount };
+}
+
+function generateHeartbeatConfig(taskType = "default") {
+  const presets = {
+    default: { interval: 30, timeout: 120, retries: 3 },
+    build: { interval: 60, timeout: 600, retries: 3 },
+    training: { interval: 300, timeout: 1800, retries: 3 },
+    download: { interval: 60, timeout: 300, retries: 3 }
+  };
+  return presets[taskType] || presets.default;
+}
+
+function recordHeartbeatBlocker(cwd, command, retries, taskType = "default") {
+  const blockersPath = path.join(cwd, ".kit", "blockers.json");
+  let blockers = { entries: [] };
+  if (fs.existsSync(blockersPath)) {
+    try {
+      blockers = JSON.parse(fs.readFileSync(blockersPath, "utf8"));
+      if (!Array.isArray(blockers.entries)) {
+        blockers.entries = [];
+      }
+    } catch {
+      blockers = { entries: [] };
+    }
+  }
+  blockers.entries.push({
+    type: "heartbeat_timeout",
+    command,
+    retries,
+    timestamp: new Date().toISOString(),
+    task_type: taskType
+  });
+  ensureDir(path.dirname(blockersPath));
+  fs.writeFileSync(blockersPath, JSON.stringify(blockers, null, 2), "utf8");
+}
+
+function generateHeartbeatWatchdogScript() {
+  return [
+    "param(",
+    "  [Parameter(Mandatory=$true)][int]$Pid,",
+    "  [Parameter(Mandatory=$true)][string]$TaskType,",
+    "  [int]$Interval = 30,",
+    "  [int]$Timeout = 120,",
+    "  [int]$Retries = 3",
+    ")",
+    "",
+    "# Heartbeat watchdog for Windows",
+    "# Monitors a process by PID, checks stdout output, and handles timeout/retry",
+    "",
+    "$retryCount = 0",
+    "$lastOutputTime = Get-Date",
+    "$stdoutFile = $null",
+    "",
+    "function Test-ProcessAlive {",
+    "  param([int]$TargetPid)",
+    "  try {",
+    "    $proc = Get-Process -Id $TargetPid -ErrorAction SilentlyContinue",
+    "    return $proc -ne $null -and -not $proc.HasExited",
+    "  } catch {",
+    "    return $false",
+    "  }",
+    "}",
+    "",
+    "function Stop-ProcessGracefully {",
+    "  param([int]$TargetPid)",
+    "  try {",
+    "    Stop-Process -Id $TargetPid -Force:$false -ErrorAction SilentlyContinue",
+    "    Start-Sleep -Seconds 5",
+    "    if (Test-ProcessAlive -TargetPid $TargetPid) {",
+    "      Stop-Process -Id $TargetPid -Force -ErrorAction SilentlyContinue",
+    "    }",
+    "  } catch {",
+    "    # Process may already be gone",
+    "  }",
+    "}",
+    "",
+    'Write-Host "[heartbeat-watchdog] Starting monitoring for PID $Pid (task-type: $TaskType, interval: ${Interval}s, timeout: ${Timeout}s, retries: $Retries)"',
+    "",
+    "while ($retryCount -lt $Retries) {",
+    "  Start-Sleep -Seconds $Interval",
+    "",
+    "  # Check if process is still alive",
+    "  if (-not (Test-ProcessAlive -TargetPid $Pid)) {",
+    '    Write-Host "[heartbeat-watchdog] PID $Pid is no longer alive."',
+    "    $retryCount += 1",
+    "    if ($retryCount -ge $Retries) {",
+    '      Write-Error "[heartbeat-watchdog] Process lost after $Retries retries. Task marked as failed."',
+    "      exit 1",
+    "    }",
+    '    Write-Host "[heartbeat-watchdog] Retry $retryCount / $Retries — process lost, restarting not supported in watchdog mode."',
+    "    continue",
+    "  }",
+    "",
+    "  # Check stdout output if a stdout file is available",
+    "  $possibleStdoutFiles = @(",
+    '    ".plan/runs/latest.stdout",',
+    '    ".plan/runs/latest.log",',
+    '    "output.log",',
+    '    "stdout.log"',
+    "  )",
+    "  foreach ($candidate in $possibleStdoutFiles) {",
+    "    if (Test-Path $candidate) {",
+    "      $stdoutFile = $candidate",
+    "      break",
+    "    }",
+    "  }",
+    "",
+    "  $hasOutput = $false",
+    "  if ($stdoutFile -and (Test-Path $stdoutFile)) {",
+    "    $lastWrite = (Get-Item $stdoutFile).LastWriteTime",
+    "    if ($lastWrite -gt $lastOutputTime) {",
+    "      $lastOutputTime = $lastWrite",
+    "      $hasOutput = $true",
+    "    }",
+    "  }",
+    "",
+    "  $elapsed = ([DateTime]::Now - $lastOutputTime).TotalSeconds",
+    "  if (-not $hasOutput -and $elapsed -gt $Timeout) {",
+    '    Write-Host "[heartbeat-watchdog] Timeout detected for PID $Pid (no output for ${elapsed}s)."',
+    "    Stop-ProcessGracefully -TargetPid $Pid",
+    "    $retryCount += 1",
+    "    if ($retryCount -ge $Retries) {",
+    '      Write-Error "[heartbeat-watchdog] Task failed after $Retries retries."',
+    "      exit 1",
+    "    }",
+    '    Write-Host "[heartbeat-watchdog] Retry $retryCount / $Retries — SIGTERM sent, waiting for restart..."',
+    "  }",
+    "}",
+    "",
+    'Write-Host "[heartbeat-watchdog] Monitoring ended."'
+  ].join("\n");
+}
+
 function printUsage() {
   console.log("Usage:");
   console.log("  spec-loop-kit --help");
-  console.log("  spec-loop-kit init [--cwd <path>] [--owner <name>] [--level 0-4] [--profile <name>] [--host auto|generic|codex|claude|opencode|agents] [--workflow] [--with-test] [--with-eval] [--with-cron] [--with-user] [--with-soul] [--force]");
-  console.log("    Core files (.plan/, .kit/, docs/, README.md, .gitignore) are always created.");
-  console.log("    Optional directories require flags: --workflow, --with-test, --with-eval, --with-cron, --with-user, --with-soul");
+  console.log("  spec-loop-kit init [--cwd <path>] [--owner <name>] [--level 0-4] [--profile <name>] [--host auto|generic|codex|claude|opencode|agents] [--template default|data-ml|fullstack] [--workflow] [--experiment] [--with-test] [--with-eval] [--with-cron] [--with-user] [--with-soul] [--force]");
+  console.log("    --level controls project scale and directory depth:");
+  console.log("      0-1 (quick):  minimal structure for <1 day projects — .plan/, .kit/, .test/ only");
+  console.log("      2   (standard): default structure for 2-5 day projects — adds .workflow/, docs/");
+  console.log("      3-4 (deep): full structure for 1+ week projects — adds tests/, evals/, acceptance/");
+  console.log("    --template selects sandbox template:");
+  console.log("      default:   generic code project — src/, tests/, evals/, logs/");
+  console.log("      data-ml:   data/ML project — data/, notebooks/, models/, results/");
+  console.log("      fullstack: web/CLI project — frontend/, backend/, e2e/, docker/");
+  console.log("    Optional flags can override scale defaults: --workflow, --experiment, --with-test, --with-eval, --with-cron, --with-user, --with-soul");
   console.log(`  spec-loop-kit validate [--cwd <path>] [--profile ${PROFILE_LIST}] [--host auto|generic|codex|claude|opencode|agents] [--json]`);
   console.log(`  spec-loop-kit audit [--cwd <path>] [--profile ${PROFILE_LIST}] [--host auto|generic|codex|claude|opencode|agents] [--json]`);
+  console.log("  spec-loop-kit checklist [--cwd <path>] [--experiment] [--long-task] [--json]");
+  console.log("    Run the sub-agent launch checklist against the specified cwd.");
+  console.log("    --experiment: enable experiment-specific checks (VARIABLES.md, disk space).");
+  console.log("    --long-task:  enable long-task checks (heartbeat monitoring).");
 }
 
 try {
@@ -1357,6 +1899,15 @@ try {
       printHumanReport(report);
     }
     process.exit(report.p0.length > 0 ? 2 : 0);
+  } else if (args.command === "checklist") {
+    const results = runSubAgentChecklist(args.cwd, { experiment: args.experiment, longTask: args.longTask });
+    if (args.json) {
+      console.log(JSON.stringify(results, null, 2));
+    } else {
+      printChecklistReport(results);
+    }
+    const failCount = results.filter((r) => r.status === "fail").length;
+    process.exit(failCount > 0 ? 2 : 0);
   } else {
     printUsage();
     process.exit(args.command ? 1 : 0);

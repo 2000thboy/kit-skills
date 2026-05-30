@@ -110,6 +110,23 @@
         "prompt": "这里是示例、配置、密钥，还是产品事实？",
         "record": "example|config|secret|fact"
       }
+    ],
+    "scale_assessment": [
+      {
+        "id": "SCALE1",
+        "prompt": "这个项目预计多久完成？是几小时的脚本、几天的组件，还是几周的产品？",
+        "record": "quick|standard|deep"
+      },
+      {
+        "id": "SCALE2",
+        "prompt": "这个需求是一次性的快速验证，还是需要长期维护的稳定交付物？",
+        "record": "oneoff|maintained"
+      },
+      {
+        "id": "SCALE3",
+        "prompt": "是否需要多轮迭代或对照实验来验证效果？",
+        "record": "experiment_needed|no_experiment"
+      }
     ]
   }
 }

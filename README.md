@@ -1,6 +1,6 @@
 # KIT Skills
 
-> Project version: `0.1.0`
+> Project version: `0.2.0`
 
 KIT Skills 是一个产品语言驱动开发的 skill 包。
 
@@ -13,6 +13,10 @@ KIT Skills 是一个产品语言驱动开发的 skill 包。
 - 归档：整理历史计划、证据、旧流程文件。
 - 漂移检查：新需求和旧目标冲突时先提醒。
 - 验收证据：记录谁执行、怎么验、证据在哪、哪里必须停。
+- 规模感知：自动推断 quick/standard/deep，用户可覆盖。
+- 沙盒模板：3 套核心模板（default/data-ml/fullstack），每套含 README.md + TEST.md。
+- 多轮多组实验：V1/V2/V3 × group-a/b/c，最多 3 轮，批量确认。
+- 心跳监控：按任务类型预设阈值，自动重试 3 次。
 
 KIT 不亲自做 deep research、QA、浏览器自动化、发布平台操作、多 Agent 执行、SDK 业务调用。它负责发现这些能力是否需要，检查宿主/项目里有没有对应 skill，再把路由和证据写进 SPEC/CHECKLIST。
 
@@ -341,6 +345,8 @@ node C:\tools\kit-skills\bin\spec-loop-kit.mjs validate --cwd D:\projects\daily-
 ```powershell
 node C:\tools\kit-skills\bin\spec-loop-kit.mjs init --cwd D:\projects\my-app --owner your-name --level 1 --host auto
 node C:\tools\kit-skills\bin\spec-loop-kit.mjs init --cwd D:\projects\my-claude-app --owner your-name --level 1 --host claude
+node C:\tools\kit-skills\bin\spec-loop-kit.mjs init --cwd D:\projects\my-ml-app --owner your-name --level 2 --template data-ml
+node C:\tools\kit-skills\bin\spec-loop-kit.mjs init --cwd D:\projects\my-experiment --owner your-name --level 3 --experiment
 node C:\tools\kit-skills\bin\spec-loop-kit.mjs validate --cwd D:\projects\my-app --profile auto --host auto
 node C:\tools\kit-skills\bin\spec-loop-kit.mjs audit --cwd D:\projects\my-app --json --host auto
 ```
@@ -419,6 +425,22 @@ npm run check:pack
 - `index.json`
 
 项目真实状态看 `.plan/`、`.kit/` 和验证证据。
+
+## 规模感知
+
+KIT 根据需求描述自动推断项目规模，分为 `quick`（1 天内）、`standard`（2-5 天）、`deep`（1 周以上）三级。`quick` 合并 PRD/SPEC/CHECKLIST 为单份 PLAN.md；`standard` 走标准三件套；`deep` 强制 Architecture Review 和 Risk Ledger。用户可通过 `--level` 参数覆盖推断结果。
+
+## 沙盒模板
+
+`init` 支持 `--template` 参数选择 3 套核心模板：`default`（通用代码项目）、`data-ml`（数据分析/ML）、`fullstack`（Web/CLI 复杂应用）。每套模板自带 README.md + TEST.md，子代理在干净会话中启动前，TEST.md 必须先就位。
+
+## 实验框架
+
+用户声明"需要做对照实验"时，KIT 创建多轮多组实验结构：V1/V2/V3 × group-a/b/c，最多 3 轮。每组独立目录，通过 `cp -r` 主项目源码创建，批量确认所有变量配置后才启动子代理。实验结果汇总为 REPORT-vN.md，用户审阅后决定继续、采用某组或归档。
+
+## 心跳监控
+
+后台 bash 长任务自动启用心跳监控，按任务类型预设阈值：`default`（120 秒）、`build`（600 秒）、`training`（1800 秒）、`download`（300 秒）。超时或 PID 消失时自动重试最多 3 次，3 次失败后写入 `.kit/blockers.json` 并通知用户。
 
 ## 自检
 
