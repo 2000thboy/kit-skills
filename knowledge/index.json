@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "updated": "2026-05-28",
+  "purpose": "Lightweight retrieval index for KIT framework explanations and brainstorm routing.",
+  "entries": [
+    {
+      "id": "openai-sdk",
+      "file": "knowledge/openai-sdk.md",
+      "keywords": ["OpenAI SDK", "Responses API", "Agents SDK", "模型调用", "SDK业务调用", "tool calling"],
+      "use_when": "User wants to build direct model/API functionality inside an app, CLI, workflow, or skill."
+    },
+    {
+      "id": "omc-framework",
+      "file": "knowledge/omc-framework.md",
+      "keywords": ["OMC", "OWM", "多agent", "编排", "team", "state", "handoff", "proof"],
+      "use_when": "User needs multi-agent orchestration, state, staged execution, or proof/verification governance."
+    },
+    {
+      "id": "openspec-framework",
+      "file": "knowledge/openspec-framework.md",
+      "keywords": ["OpenSpec", "spec-driven", "SDD", "需求变更", "proposal", "spec delta", "前后端技术栈"],
+      "use_when": "User is building a frontend/backend software product that benefits from formal spec-driven change management."
+    },
+    {
+      "id": "superdev-framework",
+      "file": "knowledge/superdev-framework.md",
+      "keywords": ["SuperDev", "Super Dev", "交付治理", "proof pack", "UI gate", "前端", "后端", "发布"],
+      "use_when": "User needs governed AI coding delivery for frontend/backend apps, quality gates, UI runtime proof, or release readiness."
+    },
+    {
+      "id": "cli-anything-framework",
+      "file": "knowledge/cli-anything-framework.md",
+      "keywords": ["CLI-Anything", "clianthing", "agent-native CLI", "harness", "JSON output", "真实后端", "CLI"],
+      "use_when": "User has an existing codebase/software and wants agents to operate it through a reliable CLI instead of UI automation."
+    },
+    {
+      "id": "pure-md-framework",
+      "file": "knowledge/pure-md-framework.md",
+      "keywords": ["纯Markdown", "md框架", ".plan", "轻量建档", "PRD", "SPEC", "CHECKLIST"],
+      "use_when": "User needs a low-friction text-first framework rather than a full runtime or formal spec tool."
+    },
+    {
+      "id": "opencli-framework",
+      "file": "knowledge/opencli-framework.md",
+      "keywords": ["OpenCLI", "浏览器自动化", "登录态", "发布", "提交", "平台操作"],
+      "use_when": "User needs logged-in browser automation, delivery, publishing, or platform operation evidence."
+    },
+    {
+      "id": "product-prototype-knowledge",
+      "file": "knowledge/product-prototype-knowledge.md",
+      "keywords": ["产品原型", "新手", "头脑风暴", "产品语言", "MVP", "workflow"],
+      "use_when": "User is unclear about the product form and needs PM-style discovery before technical selection."
+    },
+    {
+      "id": "question-bank",
+      "file": "knowledge/question-bank.json",
+      "keywords": ["固定追问", "status brief", "归档确认", "SB", "AR", "OC", "FR", "BI", "HA"],
+      "use_when": "KIT needs compact reusable questions for existing-project status, archive decisions, object classification, framework routing, browser/image/live action, or hardcoded assumptions."
+    }
+  ]
+}

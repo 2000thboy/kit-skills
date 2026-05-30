@@ -1,0 +1,31 @@
+{
+  "project_name": "kit-skills",
+  "current_goal": "Public portable KIT skill package for product-language-driven AI development",
+  "project_version": "0.1.0",
+  "stage": "public-skill-package",
+  "profile": "skill-package",
+  "progress": 90,
+  "total_tasks": 6,
+  "completed_tasks": 5,
+  "next_tasks": [
+    "Run package self-audit",
+    "Run npm pack dry-run",
+    "Push public package updates"
+  ],
+  "priority": "high",
+  "tags": [
+    "kit",
+    "skill-package",
+    "spec-loop"
+  ],
+  "blockers": [],
+  "notes": "Package truth lives in SKILL.md, README.md, bin/spec-loop-kit.mjs, templates/, knowledge/, .kit/, and .test/.",
+  "milestone": "Public GitHub package",
+  "due_date": "",
+  "final_due_date": "",
+  "last_updated": "2026-05-28",
+  "schema_version": 1,
+  "project_type": "skill-package",
+  "owner": "hy11",
+  "spec_loop_level": "1"
+}

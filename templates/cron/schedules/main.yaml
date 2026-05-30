@@ -1,0 +1,10 @@
+# {{project_name}} — Master Schedule
+
+# Example entry:
+# jobs:
+#   - name: daily-report
+#     cron: "0 9 * * *"
+#     job_file: jobs/daily-report.md
+#     enabled: false
+
+jobs: []

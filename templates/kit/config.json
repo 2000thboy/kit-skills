@@ -1,0 +1,36 @@
+{
+  "project_name": "{{project_name}}",
+  "current_goal": "初始化 Minimal Spec Loop + KIT 项目治理",
+  "project_version": "{{project_version}}",
+  "stage": "planning",
+  "profile": "{{profile}}",
+  "progress": 0,
+  "total_tasks": 7,
+  "completed_tasks": 0,
+  "next_tasks": [
+    "补齐 PRD 当前目标",
+    "补齐 SPEC 实现约束",
+    "补齐 CHECKLIST 正式排期",
+    "确认 .test/ 测试包",
+    "确认 .kit/version.json 版本合同",
+    "确认任务列表前置规划",
+    "运行 spec-loop-kit validate"
+  ],
+  "priority": "medium",
+  "tags": [
+    "spec-loop",
+    "kit"
+  ],
+  "blockers": [
+    "负责人尚未确认正式排期"
+  ],
+  "notes": "由 spec-loop-kit 初始化。当前事实源为 .plan/PRD.md、.plan/SPEC.md、.plan/CHECKLIST.md；根目录 README.md 是用户入口，{{host_entry}} 是宿主入口，.test/ 是用户测试包。",
+  "milestone": "Spec Loop 初始化",
+  "due_date": "",
+  "final_due_date": "",
+  "last_updated": "{{date}}",
+  "schema_version": 1,
+  "project_type": "software",
+  "owner": "{{owner}}",
+  "spec_loop_level": "{{level}}"
+}

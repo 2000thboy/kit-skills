@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "project_version": "0.1.0",
+  "kit_template_version": "0.1.0",
+  "version_source": ".kit/version.json",
+  "sync_targets": [
+    "README.md",
+    "AGENTS.md",
+    "CLAUDE.md",
+    "SKILL.md",
+    "package.json",
+    ".test/config.json",
+    "git tag or release name"
+  ],
+  "git_remote": "https://github.com/2000thboy/kit-skills.git",
+  "git_ref": "",
+  "last_updated": "2026-05-28"
+}

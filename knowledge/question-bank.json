@@ -1,0 +1,115 @@
+{
+  "schema_version": 1,
+  "updated": "2026-05-28",
+  "purpose": "Compact reusable KIT questions. Use IDs in conversation or docs, then ask only the exact short question needed.",
+  "rules": [
+    "Ask at most 1-2 questions before choosing a default path.",
+    "Do not ask users to pick unfamiliar frameworks unless the choice changes product outcome, cost, risk, or launch behavior.",
+    "If project facts are already aligned, do not ask for ritual confirmation.",
+    "If archive or movement can lose current intent, ask before moving files."
+  ],
+  "sets": {
+    "status_brief": [
+      {
+        "id": "SB1",
+        "prompt": "当前状态是什么？",
+        "record": "stage/progress/blockers"
+      },
+      {
+        "id": "SB2",
+        "prompt": "终点是什么？",
+        "record": "definition_of_done/stop_gate"
+      },
+      {
+        "id": "SB3",
+        "prompt": "方向和旧档是否一致？",
+        "record": "drift:none|minor|scope_expansion|direction_change|new_project_candidate"
+      },
+      {
+        "id": "SB4",
+        "prompt": "下一步能不能安全做？",
+        "record": "next_safe_action/user_decision_required"
+      }
+    ],
+    "archive_gate": [
+      {
+        "id": "AR1",
+        "prompt": "这些文件是历史、证据、用户测试包，还是当前事实？",
+        "record": "keep|archive|docs|evidence|test_user|test_ai"
+      },
+      {
+        "id": "AR2",
+        "prompt": "归档后会不会丢失当前入口或恢复路径？",
+        "record": "active_entry_impact"
+      },
+      {
+        "id": "AR3",
+        "prompt": "这个新需求是在改当前项目，还是该重开项目？",
+        "record": "drift_decision"
+      },
+      {
+        "id": "AR4",
+        "prompt": "真实用户测试材料和 AI 自测材料分清了吗？",
+        "record": ".test/user vs .test/ai"
+      }
+    ],
+    "object_classification": [
+      {
+        "id": "OC1",
+        "prompt": "你要的是 skill、workflow、CLI、前后端产品、OMC 编排、OpenCLI 自动化、SDK 集成、纯 MD 框架，还是设计原型？",
+        "record": "primary_object"
+      },
+      {
+        "id": "OC2",
+        "prompt": "你要复用 AI 行为，还是交付一个可运行软件？",
+        "record": "skill_or_runtime"
+      },
+      {
+        "id": "OC3",
+        "prompt": "这是一次性实验，还是以后要每天/每周稳定跑？",
+        "record": "oneoff_or_stable_workflow"
+      }
+    ],
+    "framework_route": [
+      {
+        "id": "FR1",
+        "prompt": "这个选择会影响产品效果、维护成本或上线门禁吗？",
+        "record": "route_tradeoff"
+      },
+      {
+        "id": "FR2",
+        "prompt": "现在还能反悔，还是一开工就会变贵？",
+        "record": "reversibility/no_return_point"
+      }
+    ],
+    "browser_image_live": [
+      {
+        "id": "BI1",
+        "prompt": "是否需要登录态、cookie、账号 session 或绑定浏览器？",
+        "record": "browser_auth_route"
+      },
+      {
+        "id": "BI2",
+        "prompt": "具体生图点是什么？",
+        "record": "image_points/provider/approval"
+      },
+      {
+        "id": "BI3",
+        "prompt": "会不会真实写入、提交、发布或外发？",
+        "record": "live_action_gate"
+      }
+    ],
+    "hardcoded_assumptions": [
+      {
+        "id": "HA1",
+        "prompt": "这个路径、端口、账号 ID、模型名是不是只在你电脑上成立？",
+        "record": "config_or_contract"
+      },
+      {
+        "id": "HA2",
+        "prompt": "这里是示例、配置、密钥，还是产品事实？",
+        "record": "example|config|secret|fact"
+      }
+    ]
+  }
+}

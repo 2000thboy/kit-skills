@@ -1,0 +1,52 @@
+{
+  "name": "kit-skills",
+  "version": "0.1.0",
+  "description": "Portable product-language KIT/spec skill with bundled spec-loop helper and validation profiles.",
+  "type": "module",
+  "bin": {
+    "spec-loop-kit": "./bin/spec-loop-kit.mjs"
+  },
+  "scripts": {
+    "check": "node --check bin/spec-loop-kit.mjs",
+    "check:contract": "node scripts/contract-tests.mjs",
+    "check:self-audit": "node bin/spec-loop-kit.mjs audit --cwd . --profile skill-package --host codex --json",
+    "check:pack": "npm pack --dry-run",
+    "check:all": "npm run check && npm run check:contract && npm run check:self-audit && npm run check:pack"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/2000thboy/kit-skills.git"
+  },
+  "homepage": "https://github.com/2000thboy/kit-skills#readme",
+  "bugs": {
+    "url": "https://github.com/2000thboy/kit-skills/issues"
+  },
+  "keywords": [
+    "ai-skill",
+    "codex",
+    "claude",
+    "prd",
+    "spec",
+    "agent-workflow",
+    "product-management"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "files": [
+    "SKILL.md",
+    "README.md",
+    "AGENTS.md",
+    "CLAUDE.md",
+    "LICENSE",
+    "agents",
+    "bin",
+    "scripts",
+    "templates",
+    "knowledge",
+    ".kit",
+    ".test",
+    "SPEC-LOOP-KIT.md"
+  ],
+  "license": "MIT"
+}

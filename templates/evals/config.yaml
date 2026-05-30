@@ -1,0 +1,21 @@
+# {{project_name}} — AI Self-Test Configuration
+
+# What this self-test validates
+scope: "Complete program smoke test"
+
+# Pass criteria
+criteria:
+  - "Application starts without errors"
+  - "Core workflow completes end-to-end"
+  - "No console errors or warnings"
+
+# Evidence to collect
+evidence:
+  screenshots: true
+  logs: true
+  network: false
+
+# Sandbox config
+sandbox:
+  type: "git-clone"  # git-clone or copy
+  auto_destroy: true  # Destroy after self-test?
