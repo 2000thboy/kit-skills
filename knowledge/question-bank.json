@@ -180,28 +180,28 @@
     "model_selection": [
       {
         "id": "UC-MODEL1",
-        "prompt": "你当前可用的 AI 模型有哪些？（Claude / Codex / GPT / 其他）",
-        "record": "available_models"
+        "prompt": "你当前可用的 AI 模型？（多选：Claude / Codex / GPT / 其他 / 不确定）",
+        "record": "available_models:claude|codex|gpt|other|unsure"
       },
       {
         "id": "UC-MODEL2",
-        "prompt": "你的月度预算或 token 配额大约多少？",
-        "record": "budget_quota"
+        "prompt": "月度预算或额度？（单选：免费/¥50-100/¥200-500/¥1000+/公司报销）",
+        "record": "budget:free|low|medium|high|unlimited"
       },
       {
         "id": "UC-MODEL3",
-        "prompt": "项目中最关键的环节是什么？（代码质量 / 生图效果 / 长文本分析 / 速度）",
-        "record": "critical_factor"
+        "prompt": "项目最关键的环节？（单选：代码质量/生图效果/长文档分析/开发速度/成本优先）",
+        "record": "critical_factor:code_quality|image|long_text|speed|cost"
       },
       {
         "id": "UC-MODEL4",
-        "prompt": "你是否接受多模型组合方案？（规划用一个模型，执行用另一个）",
-        "record": "accept_multi_model|single_model_only"
+        "prompt": "是否接受多模型组合？（单选：接受/只想用一个/听建议）",
+        "record": "multi_model:accept|single|advice"
       },
       {
         "id": "UC-MODEL5",
-        "prompt": "你对 vibe coding 的接受度如何？（直接生成代码 vs 先详细设计再编码）",
-        "record": "vibe_coding_acceptance"
+        "prompt": "对 vibe coding 的接受度？（单选：直接生成代码/先设计再编码/听建议）",
+        "record": "vibe_coding:direct|design_first|advice"
       }
     ]
   }
