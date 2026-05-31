@@ -19,8 +19,39 @@ Quality layer: inspection, research, planning.
 The core quality loop:
 
 ```
-检查 → 产出报告 → [条件确认] → 修复 → 自动回归 → 沉淀
+检查 → hedge 攻击 → 产出报告 → [条件确认] → 修复 → 自动回归 → 沉淀
 ```
+
+### Hedge 对抗性测试集成
+
+After L1/L2/L3 checks complete, automatically invoke `/hedge` for adversarial testing:
+
+```
+L1/L2/L3 Complete
+    │
+    ▼
+┌─────────────────┐
+│  Hedge Attack   │  Spawn 3 parallel sub-agents:
+│   (Parallel)    │  1. Structure Agent — Skill structure validation
+│                 │  2. Vibe Agent — Simulate vibe coder misuse
+│                 │  3. Boundary Agent — Edge cases & consistency
+└─────────────────┘
+    │
+    ▼
+Merge hedge findings into quality report
+```
+
+**Hedge Integration Rules:**
+- **Quick mode** (`/hedge --quick`): Structure only, run on every `/kit-check diff`
+- **Full mode** (`/hedge --deep`): All 7 agents, run on `/kit-check full` or before archive
+- **Security mode** (`/hedge --security`): Security + Vibe agents, run when codebase has API/auth/file ops
+- **Auto-trigger**: When L2 finds `mock`, `fake`, `placeholder`, or security-related keywords → auto-run hedge security scan
+- **Skip condition**: If L1 has >10 P0 findings, skip hedge (fix critical issues first)
+
+**Hedge Output Merge:**
+- Hedge findings merge into L1/L2/L3 report with prefix `[HEDGE-{agent}]`
+- Severity mapping: Critical→P0, High→P1, Medium→P2
+- Cross-reference: If both L2 and Hedge flag same issue → upgrade severity by one level
 
 **[条件确认] 规则**：
 

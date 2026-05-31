@@ -1,9 +1,9 @@
-# SPEC — {{project_name}}
+# SPEC — tmpkit-test-123
 
-> Owner: {{owner}}
-> Level: {{level}}
-> Profile: {{profile}}
-> Updated: {{date}}
+> Owner: unassigned
+> Level: 2
+> Profile: generic-project
+> Updated: 2026-05-30
 
 ## 当前事实源
 
@@ -13,7 +13,7 @@
 - `.kit/config.json`
 - `.kit/version.json`
 - `README.md`
-- `{{host_entry}}`
+- `CLAUDE.md`
 - `.test/README.md`
 - `.test/config.json`
 - `.workflow/README.md`
@@ -39,7 +39,7 @@
 | File | Role | Consistency status | Action |
 |---|---|---|---|
 | `README.md` | project entry | 待确认 | 必须指向 `.plan/` 当前事实源 |
-| `{{host_entry}}` | {{host_entry_role}} | 待确认 | 当前宿主主入口；必须指向 `.plan/`、`.kit/`、`.workflow/`、`.test/` |
+| `CLAUDE.md` | Claude Code primary instruction file | 待确认 | 当前宿主主入口；必须指向 `.plan/`、`.kit/`、`.workflow/`、`.test/` |
 | `.test/README.md` | user-test package entry | 待确认 | 记录隔离测试环境、测试命令、打包/启动/驱动方式和证据路径 |
 | `.workflow/README.md` | workflow entry | 待确认 | 当前可恢复入口、host preset、流程说明和历史 workflow 合同统一放这里 |
 | legacy `.workflows/` / `docs/workflows/` | legacy workflow material, if present | 待确认 | 不作为新入口；归档时迁移或桥接到 `.workflow/` |
@@ -55,7 +55,7 @@ Active workflow entry: `.workflow/README.md`
 不需要提问的条件：
 
 - `validate` 没有相关 P0/P1。
-- PRD、SPEC、CHECKLIST、`.kit/`、`.workflow/`、`.test/`、README、`{{host_entry}}` 和 live files 目标一致。
+- PRD、SPEC、CHECKLIST、`.kit/`、`.workflow/`、`.test/`、README、`CLAUDE.md` 和 live files 目标一致。
 - 候选文件明确是历史、AI 自测证据、真实用户测试材料或生成噪音。
 - 不会丢失当前入口、恢复路径、用户测试包、live action 证据、secret 材料或硬编码环境设置。
 
@@ -72,9 +72,9 @@ Active workflow entry: `.workflow/README.md`
 
 | Field | Value |
 |---|---|
-| Project version | `{{project_version}}` |
+| Project version | `0.1.0` |
 | Version source | `.kit/version.json` |
-| Sync targets | `README.md`, `{{host_entry}}`, `.test/config.json`, package/release metadata, git tag/release, `.workflow/README.md` |
+| Sync targets | `README.md`, `CLAUDE.md`, `.test/config.json`, package/release metadata, git tag/release, `.workflow/README.md` |
 
 版本不一致时，先修版本合同，再安排用户测试。
 
@@ -149,33 +149,6 @@ AI 很爱写死本机信息。归档时必须检查，不然项目一换电脑�
 | temp / download / output path | 待确认 | 使用 `.test/ai/sandboxes/` 或可配置路径 |
 | model alias / latest / auto / default | 待确认 | 固定模型或记录 alias 升级和重验规则 |
 | placeholder | 待确认 | `your-name`、`yourusername`、`replace-me` 不能留在当前事实或代码里 |
-
-## AI Model Selection
-
-**⚠️ 模型知识时效性**: `knowledge/model-selection.md` 超过 30 天需 WebSearch 验证。
-
-### 推荐模型组合
-
-| 环节 | 推荐模型 | 原因 | 用户确认 |
-|---|---|---|---|
-| 规划/分析 | 待确认 | 待确认 | 待确认 |
-| 编码执行 | 待确认 | 待确认 | 待确认 |
-| 生图/UI | 待确认 | 待确认 | 待确认 |
-| 审查/验证 | 待确认 | 待确认 | 待确认 |
-
-### 负面提示（Negative Prompts）
-
-- ❌ 不要用 {model} 做 {task} — {reason}
-- ❌ 不要只用单一模型做全栈 — 每个模型有擅长领域
-
-### 模型选择记录
-
-- 用户可用模型: 待确认
-- 用户预算/配额: 待确认
-- 用户关键需求: 待确认（代码质量 / 生图效果 / 长文本 / 速度）
-- 确认日期: 待确认
-
-记录到 `.kit/model-choice.md`。
 
 ## Capability Skill Inventory
 

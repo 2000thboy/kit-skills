@@ -58,7 +58,78 @@ Required output:
 - benchmark references: comparable product, workflow, or pattern when useful
 - next action: `建档`, more brainstorm, reject/defer, or split into a separate project
 
+### 模型选择评估（Model Selection Assessment）
+
+在头脑风暴阶段，**必须**评估并推荐 AI 模型组合。这是 PM 的核心职责之一。
+
+**读取 `knowledge/model-selection.md`** 获取最新模型对比信息。
+
+**模型选择 AskUserQuestion:**
+```
+## 🧠 模型选择评估
+
+基于你的项目特性，以下是推荐方案：
+
+| 环节 | 推荐模型 | 原因 |
+|------|---------|------|
+| 规划/分析 | {model} | {reason} |
+| 编码执行 | {model} | {reason} |
+| 生图/UI | {model} | {reason} |
+
+### ⚠️ 负面提示（不要这样做）
+- ❌ 不要用 {wrong_model} 做 {task} — {why}
+- ❌ 不要只用单一模型做全栈 — 每个模型有擅长领域
+
+### 🤔 需要你确认
+1. 你当前可用的 AI 模型有哪些？（Claude / Codex / GPT / 其他）
+2. 你的月度预算或 token 配额大约多少？
+3. 项目中最关键的环节是什么？（代码质量 / 生图效果 / 长文本分析 / 速度）
+4. 你是否接受多模型组合方案？
+```
+
+**负面提示词（Negative Prompts）必须在以下场景使用：**
+- 用户想用 Claude 做生图 → "Claude 没有生图能力，强行用代码调 API 效率低"
+- 用户想用 GPT-4 做长上下文代码审查 → "GPT-4 容易遗漏中间文件问题，用 Claude Opus"
+- 用户想用 Codex 做需求分析 → "Codex 擅长执行而非规划，先用 Claude 分析"
+- 用户想用 Haiku 做复杂调试 → "Haiku 推理弱，复杂调试用 Sonnet/Opus"
+- 用户坚持单一模型 → "每个模型有擅长领域，组合使用效果更好"
+
+**模型选择记录:**
+- 将用户确认的模型组合写入 `.kit/model-choice.md`
+- 格式：
+  ```markdown
+  ## Model Selection: YYYY-MM-DD
+  - 规划: {model} | 原因: {reason}
+  - 编码: {model} | 原因: {reason}
+  - 审查: {model} | 原因: {reason}
+  - 用户预算: {budget}
+  - 用户确认: {confirmed}
+  ```
+
+### 模型知识时效性检查
+
+- 读取 `knowledge/model-selection.md` 时检查 `last_verified` 日期
+- 如果超过 30 天，标记 `⚠️ 模型信息可能过时`
+- 触发 WebSearch 验证最新定价和能力变化
+- 特别是：Codex 价格变化、Claude 新版本发布、生图模型更新
+
 Brainstorm must end with a decision recommendation. If the idea is not ready for 建档, say what is missing instead of producing a fake PRD.
+
+**Scale-Aware Brainstorm Rounds (强制对话轮次):**
+
+| Scale | 轮次 | 每轮要求 | 可提前结束 |
+|-------|------|---------|-----------|
+| `quick` (<1天) | **1轮** | 输出分析+选项+推荐 | 用户说"跳过" |
+| `standard` (2-5天) | **1-2轮** | 第1轮初步分析 → AskUserQuestion → 第2轮细化 | 用户说"跳过" |
+| `deep` (1+周) | **≥2轮** | 每轮必须 AskUserQuestion 获取反馈，记录到 `.kit/brainstorm-log.md` | 用户说"跳过" |
+
+**每轮 AskUserQuestion 格式:**
+```
+这是第{N}轮头脑风暴分析。请确认：
+- 我的理解是否正确？
+- 有什么遗漏或错误？
+- 是否需要调整方向？
+```
 
 Do not create `.plan/`, `.kit/`, `.workflow/`, or implementation files in brainstorm mode unless the user explicitly approves 建档.
 
@@ -175,6 +246,94 @@ evals/                   # AI full-program self-test (on-demand)
 ../<project-name>-ai/      # AI workspace (isolated from human workspace)
 ```
 
+## 建档流程：用户确认门 + PM 审计
+
+### 三件套生成流程（带确认门）
+
+```
+Brainstorm 完成 → 分类确认(scale) → 生成 PRD → PM Audit → 用户确认 → 生成 SPEC → PM Audit → 用户确认 → 生成 CHECKLIST → PM Audit → 用户确认 → kitrun
+```
+
+**Scale-Aware 确认门:**
+
+| Scale | PRD确认 | SPEC确认 | CHECKLIST确认 | PM审计 |
+|-------|---------|----------|---------------|--------|
+| `quick` | ❌ 合并到 PLAN.md 整体确认 | ❌ 同上 | ❌ 同上 | 1份快速审计 |
+| `standard` | ✅ 独立确认 | ✅ 独立确认 | ✅ 独立确认 | 每阶段独立 |
+| `deep` | ✅ 独立确认 | ✅ 独立确认 | ✅ 独立确认 | 每阶段独立 + 架构专项 |
+
+### PM 审计环节
+
+每份文档生成后，自动执行 PM 审计，输出 `.kit/pm-audit-{stage}.md`：
+
+**PM 审计检查清单:**
+- [ ] 目标是否模糊？（用户是谁？解决什么痛点？）
+- [ ] 范围是否蔓延？
+- [ ] 验收标准是否可观测？
+- [ ] 技术风险是否记录？
+- [ ] 是否有 media-processing 技能？（检查 M1-M8 安全风险）
+- [ ] 硬编码假设是否被标记？
+- [ ] 是否有未回答的关键问题？
+
+**PM 审计建设性约束:**
+- 每条批评必须附带具体修复建议
+- 禁止人身攻击，批评对象是计划/文档而非用户
+- 初学者项目（MEMORY.md user_role=初学者 或 scale=quick）降低语气强度
+- 每条 🔴 阻断项必须附带：问题描述 + 为什么阻断 + 修复建议 + 验证方式
+
+**PM 审计输出格式:**
+```markdown
+# PM Audit: [stage]
+
+## 🔴 阻断项（必须修复）
+| # | 问题 | 修复建议 | 验证方式 |
+
+## 🟠 警告项（强烈建议修复）
+| # | 问题 | 修复建议 | 验证方式 |
+
+## 🟡 建议项（可选优化）
+| # | 问题 | 修复建议 | 验证方式 |
+```
+
+### 用户确认门规则
+
+**确认门 AskUserQuestion:**
+```
+PM Audit 完成，发现 {🔴N / 🟠N / 🟡N} 项。
+
+[如 🔴>0] 必须先修复阻断项才能继续。
+[如 🔴=0] 请确认当前 {PRD/SPEC/CHECKLIST}：
+- 选项 1: "确认" → 通过，继续下一阶段
+- 选项 2: "修改" → 记录反馈到 .kit/feedback.md，重新生成
+- 选项 3: "重生成" → 回到当前阶段起点重新生成
+```
+
+**确认标记:** 每个文档底部添加
+```markdown
+---
+✅ 用户确认 | 时间: YYYY-MM-DD HH:MM | 版本: {git-short-hash}
+```
+
+**3次未确认处理:**
+- 第1次未确认 → 重新呈现文档摘要，询问是否需要解释
+- 第2次未确认 → 输出风险警告，询问是否缺少信息
+- 第3次未确认 → 暂停流程，AskUserQuestion:
+  ```
+  已连续3次未确认。请选择：
+  - "跳过" → 跳过当前阶段，进入下一阶段（记录到 .kit/audit-log.md）
+  - "终止" → 终止本次 KIT 流程，保存当前进度到 .kit/interrupted/
+  - "继续" → 重新呈现文档
+  ```
+
+**流程违规记录:** 违反确认门规则（未经确认进入下一阶段）记录到 `.kit/audit-log.md`：
+```markdown
+## YYYY-MM-DD HH:MM 流程违规
+- 阶段: {PRD/SPEC/CHECKLIST}
+- 违规: 未经用户确认进入下一阶段
+- 原因: {AI自主决定/用户说"快点"/其他}
+- 风险: {描述风险}
+```
+
 Before completion, verify generated structure and run a smoke init or syntax check for any scripts touched.
 
 For coding beginners, generated project docs must include enough guidance that a future agent can continue without asking the user to explain the tech stack:
@@ -259,6 +418,49 @@ When asking, use one or two question-bank IDs and explain the consequence:
 AR3: 这个新需求是在改当前项目，还是该重开项目？
 影响: 选"改当前项目"会更新 PRD/SPEC；选"重开"会把当前项目保持干净，不把两个产品揉成一坨。
 ```
+
+### Archive Scope Change Confirmation Gate (归档变更确认)
+
+归档前若检测到计划目标变更，**必须**经用户确认：
+
+**变更检测条件:**
+- 当前请求与 `.plan/PRD.md` 的目标用户不一致
+- 当前请求与 `.plan/SPEC.md` 的核心功能有冲突
+- 当前请求改变了验收标准或停止门
+- 用户说"改方向"、"换个思路"、"不要这个了"
+
+**变更确认流程:**
+```
+检测到变更 → 输出变更对比报告 → AskUserQuestion 确认 → 用户确认后才归档
+```
+
+**变更对比报告 `.kit/scope-drift-report.md`:**
+```markdown
+# Scope Drift Report: YYYY-MM-DD
+
+## 原目标 (来自 PRD)
+- 目标用户: {original}
+- 核心功能: {original}
+- 验收标准: {original}
+
+## 新请求
+- 目标用户: {new}
+- 核心功能: {new}
+- 验收标准: {new}
+
+## 差异分析
+| 维度 | 原目标 | 新请求 | 影响 |
+
+## 建议
+- 选项1: 更新当前项目（归档旧 PLAN，重写新 PLAN）
+- 选项2: 重开一个新项目
+
+## 用户决策
+- 选择: {待用户确认}
+- 时间: {待用户确认}
+```
+
+**用户未确认前不得执行归档。** 变更确认记录写入 `.kit/decisions.md`。
 
 ### Continuation And Scope Drift Gate
 
@@ -581,15 +783,26 @@ For 建档, report:
 - owner, level, schedule/status assumptions
 - helper command or manual edits used
 - verification result
+- **brainstorm 轮次 + 用户反馈摘要**
+- **PM 审计结果（🔴/🟠/🟡 统计）**
+- **用户确认记录（PRD/SPEC/CHECKLIST 各阶段的确认状态）**
 - what the user must decide next, if anything
 - what Codex/agents can continue without user technical input
 - remaining inputs needed from the user
+
+**三件套审查契约（强制）:**
+- PRD 未经用户书面确认 → 不得生成 SPEC（记录违规到 `.kit/audit-log.md`）
+- SPEC 未经用户书面确认 → 不得生成 CHECKLIST（记录违规到 `.kit/audit-log.md`）
+- CHECKLIST 未经用户书面确认 → 不得进入 kitrun（记录违规到 `.kit/audit-log.md`）
+- 违反以上规则视为流程违规，需在报告中明确标注
 
 For 归档, report:
 
 - active fact source
 - files kept active
 - files archived or proposed for archive
+- **scope drift 检测状态（是否有计划目标变更）**
+- **变更确认状态（用户是否确认）**
 - KIT/schedule/evidence gaps
 - verification result
 - beginner-readable current status and next safe action

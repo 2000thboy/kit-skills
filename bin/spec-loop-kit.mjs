@@ -378,6 +378,9 @@ function shouldSkipScanPath(rel) {
     normalized.startsWith("__pycache__/") ||
     normalized.startsWith(".pytest_cache/") ||
     normalized.startsWith(".mypy_cache/") ||
+    normalized.startsWith(".pilotdeck-runtime/") ||
+    normalized.startsWith(".kitdeck/state/") ||
+    normalized.startsWith(".kitdeck/reports/") ||
     normalized.startsWith(".plan/archive/") ||
     normalized.startsWith(".plan/runs/") ||
     normalized.startsWith(".test/ai/evidence/") ||
@@ -464,7 +467,48 @@ function collectPatternMatches(cwd, patterns) {
   return [...grouped.values()].filter((item) => item.matches.length > 0);
 }
 
+function checkPmAuditStatus(cwd, report) {
+  const auditFiles = [
+    { rel: ".kit/pm-audit-prd.md", stage: "PRD" },
+    { rel: ".kit/pm-audit-spec.md", stage: "SPEC" },
+    { rel: ".kit/pm-audit-checklist.md", stage: "CHECKLIST" }
+  ];
+  for (const { rel, stage } of auditFiles) {
+    if (exists(cwd, rel)) {
+      const text = readText(cwd, rel);
+      const hasBlocker = /🔴\s*阻断项/.test(text) && !/🔴\s*阻断项.*\n.*\|.*\|.*\|\s*无/.test(text);
+      if (hasBlocker) {
+        addIssue(report, "p0", `pm-audit-blocker-${stage.toLowerCase()}`, `PM audit for ${stage} has 🔴 blocker(s).`, rel, "Fix blocker(s) before proceeding to implementation.");
+      }
+      report.evidence.pm_audit = report.evidence.pm_audit || {};
+      report.evidence.pm_audit[stage] = { exists: true, hasBlocker };
+    } else {
+      report.evidence.pm_audit = report.evidence.pm_audit || {};
+      report.evidence.pm_audit[stage] = { exists: false };
+    }
+  }
+}
+
+function checkUserConfirmation(cwd, report) {
+  const docs = [
+    { rel: ".plan/PRD.md", stage: "PRD" },
+    { rel: ".plan/SPEC.md", stage: "SPEC" },
+    { rel: ".plan/CHECKLIST.md", stage: "CHECKLIST" }
+  ];
+  for (const { rel, stage } of docs) {
+    const text = readText(cwd, rel);
+    const confirmed = /✅\s*用户确认/.test(text);
+    if (!confirmed) {
+      addIssue(report, "p1", `missing-user-confirmation-${stage.toLowerCase()}`, `${stage} lacks user confirmation marker.`, rel, `Add "✅ 用户确认 | 时间: ... | 版本: ..." at the bottom of ${rel}.`);
+    }
+    report.evidence.user_confirmation = report.evidence.user_confirmation || {};
+    report.evidence.user_confirmation[stage] = { confirmed };
+  }
+}
+
 function checkBase(cwd, report) {
+  checkPmAuditStatus(cwd, report);
+  checkUserConfirmation(cwd, report);
   for (const rel of [".plan/PRD.md", ".plan/SPEC.md", ".plan/CHECKLIST.md"]) {
     if (!exists(cwd, rel)) {
       addIssue(report, "p0", "missing-plan-file", `Missing ${rel}`, rel, "Run init or restore the current fact file.");

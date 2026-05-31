@@ -132,6 +132,32 @@
 
 ---
 
+## Step 6: 用户确认 + PM 审计状态检查（User Confirmation & PM Audit Gate）
+
+**做什么**
+在编码前确认 PRD/SPEC/CHECKLIST 已通过 PM 审计并经用户确认。
+
+**怎么做**
+- [ ] 读取 `.kit/pm-audit-prd.md` — 检查是否有 🔴 阻断项
+- [ ] 读取 `.kit/pm-audit-spec.md` — 检查是否有 🔴 阻断项
+- [ ] 读取 `.kit/pm-audit-checklist.md` — 检查是否有 🔴 阻断项（如存在）
+- [ ] 读取 `.plan/PRD.md` 底部 — 检查确认标记 `✅ 用户确认`
+- [ ] 读取 `.plan/SPEC.md` 底部 — 检查确认标记 `✅ 用户确认`
+- [ ] 读取 `.plan/CHECKLIST.md` 底部 — 检查确认标记 `✅ 用户确认`
+- [ ] 如项目使用 media-processing 技能（video-reader 等）— 检查 `.kit/media-risk-assessment.md`
+
+**通过标准**
+- 所有 PM 审计无 🔴 阻断项
+- 所有文档有用户确认标记
+- 如有 media-processing，风险评估已完成
+
+**失败处理**
+- PM 审计有 🔴 → 停止编码，返回 `/kit` 模式修复
+- 文档未确认 → 停止编码，返回 `/kit` 模式要求确认
+- media-processing 无风险评估 → 补充 M1-M8 检查
+
+---
+
 ## 门禁汇总
 
 | 步骤 | 名称 | 核心产出 | 阻塞条件 |
@@ -141,6 +167,7 @@
 | 3 | UI 工具链声明 | UI 决策记录 | 图标库/颜色系统未锁定 |
 | 4 | API 契约确认 | API 映射表 + 错误码策略 | API 路径不一致 |
 | 5 | 结构 + 零错误构建 | 目录结构 + 构建通过证据 | 构建 exit 非 0 |
+| 6 | 用户确认 + PM 审计 | 审计通过 + 确认标记 | 🔴 阻断项 / 未确认 |
 
 **编码前写文件自检（4 项）**
 

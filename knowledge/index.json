@@ -56,6 +56,12 @@
       "file": "knowledge/question-bank.json",
       "keywords": ["固定追问", "status brief", "归档确认", "SB", "AR", "OC", "FR", "BI", "HA"],
       "use_when": "KIT needs compact reusable questions for existing-project status, archive decisions, object classification, framework routing, browser/image/live action, or hardcoded assumptions."
+    },
+    {
+      "id": "model-selection",
+      "file": "knowledge/model-selection.md",
+      "keywords": ["模型选择", "AI模型", "Codex", "Claude", "GPT", "DALL-E", "成本", "vibe coding", "模型对比"],
+      "use_when": "Brainstorm needs AI model selection, cost comparison, capability matrix, or vibe coding assessment."
     }
   ]
 }

@@ -127,6 +127,82 @@
         "prompt": "是否需要多轮迭代或对照实验来验证效果？",
         "record": "experiment_needed|no_experiment"
       }
+    ],
+    "user_confirmation": [
+      {
+        "id": "UC1",
+        "prompt": "请确认当前 PRD：方向是否正确？有无遗漏？",
+        "record": "prd_confirmed|modify|regenerate"
+      },
+      {
+        "id": "UC2",
+        "prompt": "请确认当前 SPEC：技术方案是否可行？验收标准是否清晰？",
+        "record": "spec_confirmed|modify|regenerate"
+      },
+      {
+        "id": "UC3",
+        "prompt": "请确认当前 CHECKLIST：任务是否完整？优先级是否合理？",
+        "record": "checklist_confirmed|modify|regenerate"
+      },
+      {
+        "id": "UC4",
+        "prompt": "连续未确认，是否跳过当前阶段或终止流程？",
+        "record": "skip|terminate|continue"
+      }
+    ],
+    "pm_audit": [
+      {
+        "id": "PM1",
+        "prompt": "目标用户是否明确？解决什么痛点？",
+        "record": "target_user|pain_point|vague"
+      },
+      {
+        "id": "PM2",
+        "prompt": "范围是否有蔓延？当前阶段是否包含不属于此阶段的内容？",
+        "record": "scope_creep|clean"
+      },
+      {
+        "id": "PM3",
+        "prompt": "验收标准是否可观测？（如'加载时间<2秒'而非'好用'）",
+        "record": "observable|vague_acceptance"
+      },
+      {
+        "id": "PM4",
+        "prompt": "技术风险是否记录？依赖项、无返回点、已知风险？",
+        "record": "risks_documented|missing_risks"
+      },
+      {
+        "id": "PM5",
+        "prompt": "是否有 media-processing 技能？视频/图片/音频处理的安全风险是否评估？",
+        "record": "media_risk_assessed|no_media"
+      }
+    ],
+    "model_selection": [
+      {
+        "id": "UC-MODEL1",
+        "prompt": "你当前可用的 AI 模型有哪些？（Claude / Codex / GPT / 其他）",
+        "record": "available_models"
+      },
+      {
+        "id": "UC-MODEL2",
+        "prompt": "你的月度预算或 token 配额大约多少？",
+        "record": "budget_quota"
+      },
+      {
+        "id": "UC-MODEL3",
+        "prompt": "项目中最关键的环节是什么？（代码质量 / 生图效果 / 长文本分析 / 速度）",
+        "record": "critical_factor"
+      },
+      {
+        "id": "UC-MODEL4",
+        "prompt": "你是否接受多模型组合方案？（规划用一个模型，执行用另一个）",
+        "record": "accept_multi_model|single_model_only"
+      },
+      {
+        "id": "UC-MODEL5",
+        "prompt": "你对 vibe coding 的接受度如何？（直接生成代码 vs 先详细设计再编码）",
+        "record": "vibe_coding_acceptance"
+      }
     ]
   }
 }

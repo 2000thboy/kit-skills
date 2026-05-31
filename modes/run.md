@@ -34,6 +34,20 @@ Before writing any code:
 3. **声明 UI 工具链** — Lock icon library (Lucide / Heroicons / Tabler) and design token system. Record in `docs/ui-ux/design-system.md` or `.kit/config.json`.
 4. **确认 API 契约和设计 token** — Verify backend API shape, response schema, and design token availability before frontend implementation.
 5. **建立页面结构 + 验证构建零错误** — Scaffold page/routing structure and run a build to confirm zero errors before filling in details.
+6. **检查模型选择记录** — Read `.kit/model-choice.md`:
+   - 确认当前环节使用的模型是否最优
+   - 如果编码环节指定了 Codex → 优先调用 Codex
+   - 如果编码环节指定了 Claude → 使用 Claude Agent
+   - 如果生图环节指定了 DALL-E → 调用生图 API
+   - 如果模型未指定 → 默认使用 Claude Sonnet（平衡性）
+   - 如果模型信息超过 30 天 → 重新评估
+7. **检查 PM 审计状态** — Read `.kit/pm-audit-*.md`:
+   - 如果存在 🔴 阻断项 → 停止，报告 blocker，不得进入编码
+   - 如果只有 🟠/🟡 → 记录风险，可继续但需在实现中关注
+   - 如果无 PM 审计文件（quick 项目可能跳过）→ 记录 "PM audit skipped" 到 `.kit/audit-log.md`
+7. **检查用户确认状态** — Read `.plan/PRD.md`、`.plan/SPEC.md`、`.plan/CHECKLIST.md` 底部确认标记：
+   - 未经用户确认的文档 → 停止，返回 `/kit` 模式要求确认
+   - 确认标记格式：`✅ 用户确认 | 时间: ... | 版本: ...`
 
 If any step fails, stop and report the blocker. Do not proceed to implementation with unresolved gate failures.
 
@@ -75,7 +89,37 @@ Before claiming any task complete, verify:
 4. **新增代码接入真实调用链** — The new code is actually called by existing code, not orphaned. Verify via static analysis or runtime trace.
 5. **新增日志/告警验证真实路径触发** — Add a temporary log or verify that the new code path is exercised. Remove temporary logs before final commit.
 
-If any item fails, the task is not complete. Fix and re-verify.
+### Hedge Adversarial Check (Item 6)
+
+After the 5 items pass, run a targeted hedge attack before claiming completion:
+
+```
+Implementation Closure 5-Item ✅
+    │
+    ▼
+┌─────────────────────────────┐
+│  Hedge Quick Check          │
+│  `/hedge --quick`           │
+│  Target: changed files only │
+└─────────────────────────────┘
+    │
+    ├─ Pass (score ≥ 75) → Task complete
+    └─ Fail (score < 75)  → Return to fix loop
+```
+
+**Hedge trigger conditions in /kit-run:**
+- Always run `--quick` mode on changed files before task completion
+- Run `--security` mode when code touches: auth, file upload, DB, external API calls
+- Run `--deep` mode before `/kit archive` (final gate)
+- If hedge finds Critical/High issues → block completion, return to fix
+
+**Integration with Codex:**
+After Codex completes implementation, run:
+```powershell
+codex exec --cd <project-dir> "Run hedge quick check on changed files. If score < 75, fix issues and re-verify."
+```
+
+If any item fails (including hedge), the task is not complete. Fix and re-verify.
 
 ---
 

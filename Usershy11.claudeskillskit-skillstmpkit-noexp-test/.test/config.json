@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "project_version": "0.1.0",
+  "kit_template_version": "0.1.0",
+  "host": "claude",
+  "entry": ".test/README.md",
+  "ai": {
+    "sandbox_root": ".test/ai/sandboxes",
+    "report_root": ".test/ai/reports",
+    "evidence_root": ".test/ai/evidence",
+    "package_root": ".test/ai/packages",
+    "fixture_root": ".test/ai/fixtures"
+  },
+  "user": {
+    "entry": ".test/user/README.md",
+    "package_root": ".test/user/packages",
+    "guide_root": ".test/user/guides",
+    "acceptance_root": ".test/user/acceptance",
+    "feedback_root": ".test/user/feedback",
+    "evidence_root": ".test/user/evidence"
+  },
+  "rules": [
+    "Do not mix AI self-check artifacts with real user testing artifacts.",
+    "AI-simulated users are AI tests, not real user tests.",
+    "Do not place test artifacts in the repo root.",
+    "Do not create output/ or outputs/ at repo root.",
+    "If output/ or outputs/ already exists, classify contents into .test/ai, .test/user, or .plan/archive before claiming archive cleanup is complete.",
+    "Do not place test artifacts in .plan/.",
+    "Do not put real user feedback inside .test/ai; do not put model-generated feedback inside .test/user.",
+    "Keep large raw logs out of chat context. Store raw files under evidence roots and summarize them in reports.",
+    "Record test strategy in .plan/SPEC.md and task status in .plan/CHECKLIST.md."
+  ],
+  "last_updated": "2026-05-30"
+}
