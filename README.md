@@ -1,26 +1,28 @@
 # KIT Skills
 
-> Project version: `0.3.0`
+> Project version: `0.4.1`
 
 KIT Skills 是一个产品语言驱动开发的 skill 包。
 
 用户用自然语言讲产品目标，AI 负责追问、建档、拆任务、记录技术路线、跑验证。用户不需要手填 PRD/SPEC/CHECKLIST。
 
-## 四命令心智模型
+## 六命令心智模型
 
-KIT v2.0 提供四个命令，覆盖产品到开发的完整闭环：
+KIT v2.0 提供六个命令，覆盖产品到开发的完整闭环：
 
 ```
 /kit       → 产品层（建档 / 归档 / 脑暴 / 沙盒）
 /kit-run   → 执行层（编码 / 测试 / 运行）
 /kit-check → 质量层（检查 / 研究 / 规划）
 /kit-loop  → 自动巡航（自我迭代 / 时间盒）
+/kit-pack  → 打包层（封装 / 分享 / 生成沙盒）
+/kit-test  → 验收层（边界确认 / 核心打包 / 测试报告）
 ```
 
 飞轮：
 
 ```
-/kit init → /kit brainstorm → /kit-run start → /kit-check diff → [用户确认] → 修复 → 回归 → /kit archive
+/kit init → /kit brainstorm → /kit-run start → /kit-check diff → [用户确认] → 修复 → 回归 → /kit test → /kit pack → /kit archive
 ```
 
 ## 核心用途
@@ -28,6 +30,8 @@ KIT v2.0 提供四个命令，覆盖产品到开发的完整闭环：
 - brainstorm：先聊清产品方向。
 - 建档：生成根目录 `README.md`、宿主入口、`.plan/PRD.md`、`.plan/SPEC.md`、`.plan/CHECKLIST.md`、`.kit/`、`.workflow/`、`.test/`。
 - 归档：整理历史计划、证据、旧流程文件。
+- 打包 (`/kit-pack`)：封装可分享沙盒，清理临时文件，保留核心代码+README+证据。
+- 验收 (`/kit-test`)：确认版本边界清晰，打包核心代码+README，运行验收测试并生成报告。
 - 漂移检查：新需求和旧目标冲突时先提醒。
 - 验收证据：记录谁执行、怎么验、证据在哪、哪里必须停。
 - 规模感知：自动推断 quick/standard/deep，用户可覆盖。
@@ -122,17 +126,17 @@ D:\projects\my-app
 
 KIT 建档前必须先分类用户到底要开发什么：
 
-| 类型 | 默认建议 |
-|---|---|
-| `skill` | 先做可复用 skill 包 |
-| `stable-workflow` | 先做 `.workflow/` + runner contract |
-| `cli-harness` | 考虑 CLI-Anything 式 CLI、JSON 输出、真实后端、测试 |
-| `frontend-backend-app` | 可推荐 OpenSpec 或 Super Dev |
-| `omc-orchestration` | 路由到 OMC/team/state/handoff |
-| `opencli-automation` | 用 OpenCLI/project browser route |
-| `sdk-integration` | 记录 OpenAI/Claude SDK 业务调用边界 |
-| `pure-md-framework` | 走轻量 `.plan/PRD/SPEC/CHECKLIST` |
-| `design-prototype` | 先做 skill 或稳定 workflow，流程稳定后再考虑 CLI/WebUI |
+| 类型 | 默认建议 | 对标产品 | 推荐模板 |
+|---|---|---|---|
+| `skill` | 先做可复用 skill 包 | Claude Skills, Cursor Rules, Windsurf Rules, GitHub Copilot Extensions | `skill` |
+| `stable-workflow` | 先做 `.workflow/` + runner contract | GitHub Actions, n8n, Zapier, Temporal | `stable-workflow` |
+| `cli-harness` | 考虑 CLI-Anything 式 CLI、JSON 输出、真实后端、测试 | Vercel CLI, npm, Homebrew, Ollama CLI | `default` |
+| `frontend-backend-app` | 可推荐 OpenSpec 或 Super Dev | Linear, Notion, Figma, Vercel, Supabase | `fullstack` |
+| `omc-orchestration` | 路由到 OMC/team/state/handoff | AutoGen, CrewAI, LangGraph, Dify | `default` |
+| `opencli-automation` | 用 OpenCLI/project browser route | Playwright, Selenium, n8n browser, Scrapy | `default` |
+| `sdk-integration` | 记录 OpenAI/Claude SDK 业务调用边界 | LangChain, LlamaIndex, Stripe SDK, Vercel AI SDK | `default` |
+| `pure-md-framework` | 走轻量 `.plan/PRD/SPEC/CHECKLIST` | Docusaurus, GitBook, Notion, Obsidian Publish | `default` |
+| `design-prototype` | 先做 skill 或稳定 workflow，流程稳定后再考虑 CLI/WebUI | Figma, Framer, v0.dev, Bolt.new | `default` |
 
 如果是前后端技术栈选型：
 
@@ -249,6 +253,31 @@ node C:\tools\kit-skills\bin\spec-loop-kit.mjs init --cwd D:\projects\my-claude-
 
 ## 继续开发
 
+### 两种启动场景
+
+**场景 1：从头开始**
+```text
+用 kit-skills 帮我开发 xxxxx
+```
+→ 走完整建档流程：Brainstorm → 分类 → 生成三件套 → **用户确认** → 开发
+
+**场景 2：中间介入（已有项目）**
+```text
+继续按 kit-skills 的流程开发
+```
+→ **强制流程**：
+1. AI 先读取 `.plan/`、`.kit/` 报状态简报
+2. **如用户目标不清晰或与当前 PLAN 有差异 → 必须先头脑风暴到用户足够清楚**
+3. **PLAN 确认后才能继续开发**
+4. AI 不得因"快点"、"直接做"跳过头脑风暴和确认门
+
+### 用户门禁（不可跳过）
+
+- **用户始终是门禁**。关键决策必须经用户确认，AI 不得擅自决定。
+- **不接受模糊确认**。"ok"、"好的"、"行" 不等于确认。必须明确"确认"。
+- 涉及 3 个以上文件改动，先给计划。
+- 完成后运行 validate，并报告证据。
+
 ```text
 使用 kit-skills 继续这个项目。
 先读取 .plan/PRD.md、.plan/SPEC.md、.plan/CHECKLIST.md 和 .kit/。
@@ -270,6 +299,69 @@ node C:\tools\kit-skills\bin\spec-loop-kit.mjs init --cwd D:\projects\my-claude-
 没有阻塞决策就写“不需要”。别为了显得礼貌把用户拽进每个细枝末节，用户不是配置文件填写员。
 
 固定追问放在 `knowledge/question-bank.json`。AI 需要追问时引用 `SB*`、`AR*`、`OC*`、`FR*`、`BI*`、`HA*` 这些问题 ID，再问一句短问题。
+
+## 打包与验收
+
+### `/kit-pack` — 打包分享
+
+当用户说"打包"、"pack"、"封装"时使用。目的是生成一个可分享的沙盒或测试包。
+
+**强制确认门**：
+
+```text
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+/kit-pack 打包确认
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+打包范围:
+  • 核心代码: src/, bin/, modes/ 等
+  • 文档: README.md, SKILL.md, AGENTS.md/CLAUDE.md
+  • 证据: .test/ai/evidence/, .test/ai/reports/
+  • 版本: .kit/version.json
+
+排除项:
+  • 临时文件: logs/, .omc/, .pilotdeck-runtime/
+  • 敏感信息: .env, secrets, API keys
+  • 开发依赖: node_modules/, __pycache__/, .venv/
+
+用户可回复:
+  • "确认" → 执行打包
+  • "修改范围" → 调整后重新确认
+  • "取消" → 不打包
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+**输出**：`{project-name}-pack-YYYYMMDD/` 目录或 `{project-name}-pack-YYYYMMDD.zip`
+
+### `/kit-test` — 验收测试
+
+当用户说"test"、"验收"、"版本已完成"时使用。前提是版本已开发完毕、边界清晰。
+
+**强制确认门**：
+
+```text
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+/kit-test 验收确认
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+验收前提检查:
+  • 版本边界是否清晰？
+  • 核心功能是否已完成？
+  • 是否有已知阻塞项？
+
+验收内容:
+  • 打包核心代码 + README
+  • 运行验收测试（按 .plan/CHECKLIST.md 验收标准）
+  • 生成测试报告
+
+用户可回复:
+  • "确认" → 执行验收
+  • "还有未完成项" → 返回 /kit-run 继续开发
+  • "取消" → 不验收
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+**输出**：`.test/ai/reports/acceptance-YYYYMMDD.md` + 验收证据
 
 ## 归档前确认
 

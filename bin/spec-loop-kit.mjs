@@ -1,11 +1,18 @@
 #!/usr/bin/env node
 import fs from "node:fs";
 import path from "node:path";
+import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "..");
 const templates = path.join(root, "templates");
+
+// Graceful interruption: ensure partial writes are not left behind
+process.on("SIGINT", () => {
+  process.stderr.write("\n[spec-loop-kit] Interrupted.\n");
+  process.exit(130);
+});
 const VALID_PROFILES = new Set([
   "auto",
   "generic-project",
@@ -34,6 +41,9 @@ const LEVEL_SCALE_MAP = {
 };
 
 function parseArgs(argv) {
+  if (argv.length > 100) {
+    throw new Error(`Too many arguments (${argv.length}). Max allowed: 100.`);
+  }
   const args = {
     command: argv[2],
     cwd: process.cwd(),
@@ -89,10 +99,20 @@ function parseArgs(argv) {
       args.withSoul = true;
     } else if (value === "--long-task") {
       args.longTask = true;
+    } else if (value === "--skip-brainstorm") {
+      args.skipBrainstorm = true;
     } else if (value === "--template") {
       args.template = normalizeTemplate(requireValue("--template"));
     } else if (value === "--owner") {
-      args.owner = requireValue("--owner");
+      const ownerVal = requireValue("--owner");
+      if (ownerVal.length > 100) {
+        throw new Error(`--owner must be at most 100 characters. Received: ${ownerVal.length}`);
+      }
+      const OWNER_PATTERN = /^[a-zA-Z0-9一-龥\s\-_]+$/;
+      if (!OWNER_PATTERN.test(ownerVal)) {
+        throw new Error(`--owner contains invalid characters. Allowed: alphanumeric, Chinese characters, spaces, hyphens, underscores. Received: ${ownerVal}`);
+      }
+      args.owner = ownerVal;
     } else if (value === "--level") {
       args.level = normalizeLevel(requireValue("--level"));
     } else if (value === "--profile") {
@@ -100,7 +120,37 @@ function parseArgs(argv) {
     } else if (value === "--host") {
       args.host = normalizeHost(requireValue("--host"));
     } else if (value === "--cwd") {
-      args.cwd = path.resolve(requireValue("--cwd"));
+      const rawCwd = requireValue("--cwd");
+      if (!rawCwd || rawCwd.trim().length === 0) {
+        throw new Error(`--cwd requires a non-empty path. Received: "${rawCwd}"`);
+      }
+      const resolvedCwd = path.resolve(rawCwd);
+      const currentCwd = process.cwd();
+      // Critical fix Sec-4.1: prevent path traversal — reject parent-dir references
+      const normalized = path.normalize(resolvedCwd);
+      const pathParts = normalized.split(path.sep);
+      if (pathParts.includes("..")) {
+        throw new Error(`--cwd cannot contain parent-directory references (..). Received: ${rawCwd}`);
+      }
+      // For existing paths: additionally verify it's not a system/sensitive directory
+      if (fs.existsSync(resolvedCwd)) {
+        try {
+          const realCwd = fs.realpathSync(resolvedCwd);
+          // Block known system directories (Windows and Unix)
+          const blockedRoots = process.platform === "win32"
+            ? ["C:\\\\Windows", "C:\\\\Program Files", "C:\\\\ProgramData"]
+            : ["/etc", "/usr", "/bin", "/sbin", "/lib", "/sys", "/proc", "/dev"];
+          for (const blocked of blockedRoots) {
+            if (realCwd.toLowerCase().startsWith(blocked.toLowerCase())) {
+              throw new Error(`--cwd points to a system directory (${realCwd}). Use a user-writable path instead.`);
+            }
+          }
+        } catch (e) {
+          if (e.message.includes("--cwd points to")) throw e;
+          throw new Error(`--cwd path is not accessible: ${resolvedCwd}`);
+        }
+      }
+      args.cwd = resolvedCwd;
     } else if (value === "--help" || value === "-h") {
       args.help = true;
     } else if (value?.startsWith("-")) {
@@ -150,6 +200,13 @@ function writeTemplate(source, target, data, force) {
   if (existed && !force) {
     return { target, status: "skipped" };
   }
+  // Backup before overwrite (Critical fix V-6)
+  if (existed && force) {
+    const backupDir = path.join(path.dirname(target), ".kit", "backup");
+    ensureDir(backupDir);
+    const backupName = `${path.basename(target)}.${Date.now()}.bak`;
+    fs.copyFileSync(target, path.join(backupDir, backupName));
+  }
   ensureDir(path.dirname(target));
   const content = render(fs.readFileSync(source, "utf8"), data);
   fs.writeFileSync(target, content, "utf8");
@@ -157,6 +214,9 @@ function writeTemplate(source, target, data, force) {
 }
 
 function normalizeProfile(profile) {
+  if (profile.length > 50) {
+    throw new Error(`Invalid profile: too long (max 50 chars)`);
+  }
   if (!VALID_PROFILES.has(profile)) {
     throw new Error(`Invalid profile: ${profile}`);
   }
@@ -164,6 +224,9 @@ function normalizeProfile(profile) {
 }
 
 function normalizeHost(host) {
+  if (host.length > 50) {
+    throw new Error(`Invalid host: too long (max 50 chars)`);
+  }
   if (!VALID_HOSTS.has(host)) {
     throw new Error(`Invalid host: ${host}`);
   }
@@ -171,6 +234,9 @@ function normalizeHost(host) {
 }
 
 function normalizeLevel(level) {
+  if (level.length > 50) {
+    throw new Error(`Invalid level: too long (max 50 chars)`);
+  }
   if (!VALID_LEVELS.has(level)) {
     throw new Error(`Invalid level: ${level}. Must be one of: 0, 1, 2, 3, 4`);
   }
@@ -178,6 +244,9 @@ function normalizeLevel(level) {
 }
 
 function normalizeTemplate(template) {
+  if (template.length > 50) {
+    throw new Error(`Invalid template: too long (max 50 chars)`);
+  }
   if (!VALID_TEMPLATES.has(template)) {
     throw new Error(`Invalid template: ${template}. Must be one of: default, data-ml, fullstack`);
   }
@@ -195,9 +264,8 @@ function detectHost(cwd, requested) {
   if (exists(cwd, ".opencode")) return "opencode";
   if (exists(cwd, ".codex")) return "codex";
   if (exists(cwd, "AGENTS.md")) return "agents";
-  const envText = Object.entries(process.env)
-    .filter(([key]) => key.toLowerCase().includes("claude") || key.toLowerCase().includes("codex") || key.toLowerCase().includes("opencode"))
-    .map(([key, value]) => `${key}=${value}`)
+  const envText = Object.keys(process.env)
+    .filter((key) => key.toLowerCase().includes("claude") || key.toLowerCase().includes("codex") || key.toLowerCase().includes("opencode"))
     .join("\n")
     .toLowerCase();
   if (envText.includes("claude")) return "claude";
@@ -223,9 +291,28 @@ function detectProfile(cwd, requested) {
   const text = [
     readText(cwd, "AGENTS.md"),
     readText(cwd, "README.md"),
-    readText(cwd, "package.json"),
-    readText(cwd, "skills/daily-mystery-fanqie/SKILL.md")
+    readText(cwd, "package.json")
   ].join("\n").toLowerCase();
+  // Check for project-local skills that indicate content publishing
+  const localSkillsDir = path.join(cwd, "skills");
+  let hasContentSkill = false;
+  if (fs.existsSync(localSkillsDir)) {
+    try {
+      const skillDirs = fs.readdirSync(localSkillsDir);
+      for (const dir of skillDirs) {
+        const skillMd = path.join(localSkillsDir, dir, "SKILL.md");
+        if (fs.existsSync(skillMd)) {
+          const skillText = fs.readFileSync(skillMd, "utf8").toLowerCase();
+          if (skillText.includes("publish") || skillText.includes("content") || skillText.includes("article")) {
+            hasContentSkill = true;
+            break;
+          }
+        }
+      }
+    } catch (_e) {
+      // ignore read errors
+    }
+  }
 
   if (exists(cwd, "SKILL.md") && exists(cwd, "bin/spec-loop-kit.mjs") && exists(cwd, "templates")) {
     return "skill-package";
@@ -233,8 +320,8 @@ function detectProfile(cwd, requested) {
   if (
     exists(cwd, "fanqie-cli.js") ||
     exists(cwd, "workflow-runner.js") ||
+    hasContentSkill ||
     text.includes("publish") ||
-    text.includes("fanqie") ||
     text.includes("long-form") ||
     text.includes("novel")
   ) {
@@ -413,9 +500,8 @@ function isScannableTextFile(rel) {
     ".ps1",
     ".bat",
     ".cmd",
-    ".env",
     ".example"
-  ].includes(ext) || path.basename(rel).toLowerCase().startsWith(".env");
+  ].includes(ext);
 }
 
 function scanTextFiles(cwd) {
@@ -509,6 +595,15 @@ function checkUserConfirmation(cwd, report) {
 function checkBase(cwd, report) {
   checkPmAuditStatus(cwd, report);
   checkUserConfirmation(cwd, report);
+  // Critical fix M-4: composite check — PM audit must have no 🔴 AND user must confirm
+  const stages = ["PRD", "SPEC", "CHECKLIST"];
+  for (const stage of stages) {
+    const pmAudit = report.evidence.pm_audit?.[stage];
+    const userConfirm = report.evidence.user_confirmation?.[stage];
+    if (pmAudit?.hasBlocker && userConfirm?.confirmed) {
+      addIssue(report, "p0", `pm-user-conflict-${stage.toLowerCase()}`, `${stage} has 🔴 PM audit blocker(s) but user already confirmed. Fix blocker(s) before user confirmation is valid.`, `.kit/pm-audit-${stage.toLowerCase()}.md`, "Resolve PM audit 🔴 blocker(s) first, then re-confirm with user.");
+    }
+  }
   for (const rel of [".plan/PRD.md", ".plan/SPEC.md", ".plan/CHECKLIST.md"]) {
     if (!exists(cwd, rel)) {
       addIssue(report, "p0", "missing-plan-file", `Missing ${rel}`, rel, "Run init or restore the current fact file.");
@@ -570,6 +665,8 @@ function checkBase(cwd, report) {
   checkBrowserAndImageRoutes(cwd, report, corpus);
   checkModelAgentDevelopmentRisks(cwd, report, corpus);
   checkHardcodedAssumptions(cwd, report);
+  checkRuntimeIndexSync(cwd, report);
+  checkSandboxArchivePaths(cwd, report);
 }
 
 function checkLooseOutputDirs(cwd, report) {
@@ -1189,6 +1286,108 @@ function checkArchiveCleanup(cwd, report) {
   }
 }
 
+function checkRuntimeIndexSync(cwd, report) {
+  const version = parseJsonFile(cwd, ".kit/version.json");
+  const config = parseJsonFile(cwd, ".kit/config.json");
+  const runtimeIndex = parseJsonFile(cwd, ".kit/case-runtime-index.json");
+
+  // Check version consistency across .kit/ files
+  const versions = [];
+  if (version?.project_version) versions.push({ file: ".kit/version.json", ver: version.project_version });
+  if (config?.project_version) versions.push({ file: ".kit/config.json", ver: config.project_version });
+  if (runtimeIndex?.project_version) versions.push({ file: ".kit/case-runtime-index.json", ver: runtimeIndex.project_version });
+
+  if (versions.length >= 2) {
+    const first = versions[0].ver;
+    const mismatched = versions.filter((v) => v.ver !== first);
+    if (mismatched.length > 0) {
+      addIssue(
+        report,
+        "p1",
+        "runtime-index-version-mismatch",
+        `.kit/ version mismatch: ${versions.map((v) => `${v.file}=${v.ver}`).join(", ")}.`,
+        ".kit/",
+        "Align .kit/version.json, .kit/config.json, and .kit/case-runtime-index.json to the same project_version before archiving."
+      );
+    }
+  }
+
+  // Check runtime index stage consistency
+  if (runtimeIndex) {
+    const indexStage = runtimeIndex.current_stage || runtimeIndex.stage;
+    const configStage = config?.current_stage || config?.stage;
+    if (indexStage && configStage && indexStage !== configStage) {
+      addIssue(
+        report,
+        "p1",
+        "runtime-index-stage-mismatch",
+        `.kit/case-runtime-index.json stage (${indexStage}) differs from .kit/config.json stage (${configStage}).`,
+        ".kit/case-runtime-index.json",
+        "Synchronize stage markers across .kit/ files to prevent cross-session state pollution."
+      );
+    }
+  }
+
+  // Check if .plan/ version markers match .kit/ version
+  const prd = readText(cwd, ".plan/PRD.md");
+  const spec = readText(cwd, ".plan/SPEC.md");
+  const planVersionMatch = prd.match(/(?:版本|version)[\s:=]+v?(\d+\.\d+\.\d+)/i) || spec.match(/(?:版本|version)[\s:=]+v?(\d+\.\d+\.\d+)/i);
+  if (planVersionMatch && versions.length > 0) {
+    const planVer = planVersionMatch[1];
+    const kitVer = versions[0].ver;
+    if (planVer !== kitVer) {
+      addIssue(
+        report,
+        "p1",
+        "plan-kit-version-drift",
+        `.plan/ version marker (v${planVer}) differs from .kit/ version (${kitVer}).`,
+        ".plan/PRD.md / .kit/version.json",
+        "Keep .plan/ and .kit/ version markers in sync to avoid runtime index pollution."
+      );
+    }
+  }
+}
+
+function checkSandboxArchivePaths(cwd, report) {
+  const planDir = path.join(cwd, ".plan");
+  if (!fs.existsSync(planDir)) return;
+
+  const planFiles = fs.readdirSync(planDir).filter((name) => name.endsWith(".md"));
+  // M-7 fix: allow v1.0.md, v1.0.0.md, v2.md etc.
+  const sandboxPattern = /^(?:susx|sandbox|eval|experiment|ab-test|v\d+(?:\.\d+)*)[-_]/i;
+  const candidates = planFiles.filter((name) => sandboxPattern.test(name) && !name.match(/^(PRD|SPEC|CHECKLIST|README)\.md$/i));
+
+  if (candidates.length > 0) {
+    addIssue(
+      report,
+      "p1",
+      "sandbox-candidates-in-plan-dir",
+      `Sandbox/experiment candidate files found in .plan/: ${candidates.join(", ")}.`,
+      ".plan/",
+      "Move sandbox experiment candidates to .test/ai/sandboxes/<sandbox>/_archive/. Keep .plan/ for active PRD/SPEC/CHECKLIST only."
+    );
+  }
+
+  // Check if .test/ai/sandboxes/ archive structure exists when needed
+  const sandboxesDir = path.join(cwd, ".test", "ai", "sandboxes");
+  if (fs.existsSync(sandboxesDir)) {
+    const sandboxes = fs.readdirSync(sandboxesDir, { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name);
+    for (const sandbox of sandboxes) {
+      const archiveDir = path.join(sandboxesDir, sandbox, "_archive");
+      if (!fs.existsSync(archiveDir)) {
+        addIssue(
+          report,
+          "p2",
+          "missing-sandbox-archive-dir",
+          `Sandbox ${sandbox} lacks _archive/ directory.`,
+          `.test/ai/sandboxes/${sandbox}/`,
+          "Create _archive/ under each sandbox to store historical plan candidates and evidence."
+        );
+      }
+    }
+  }
+}
+
 function checkSkillPackage(cwd, report) {
   const requiredPaths = [
     "SKILL.md",
@@ -1274,6 +1473,10 @@ function checkSkillPackage(cwd, report) {
   if (skillLines > 700) {
     addIssue(report, "p2", "skill-doc-long", `SKILL.md is ${skillLines} lines; it may be heavy for host skill loading.`, "SKILL.md", "Later split reference material into knowledge/ while keeping the entrypoint lean.");
   }
+
+  // Critical fix S-6.3: skill-package self-audit must also run archive checks
+  checkRuntimeIndexSync(cwd, report);
+  checkSandboxArchivePaths(cwd, report);
 }
 
 function buildReport(args) {
@@ -1360,6 +1563,19 @@ function printHumanReport(report) {
 function initProject(args) {
   const cwd = path.resolve(args.cwd);
   const projectName = path.basename(cwd);
+
+  // Critical fix V-1: enforce brainstorm gate before init
+  if (!args.skipBrainstorm) {
+    const hasProductInfo = args.owner && args.owner.length > 0;
+    const isEmptyDir = !fs.existsSync(cwd) || fs.readdirSync(cwd).length === 0;
+    if (!hasProductInfo || isEmptyDir) {
+      console.warn("\n*** WARNING ***");
+      console.warn("Init without clear product intent detected.");
+      console.warn("Recommended: run brainstorm first, or use --skip-brainstorm if you are sure.");
+      console.warn("\nTo skip this warning: node spec-loop-kit.mjs init --skip-brainstorm ...");
+    }
+  }
+
   const host = detectHost(cwd, args.host);
   const hostEntry = hostEntryFor(host);
   const data = {
@@ -1519,13 +1735,6 @@ function initProject(args) {
       ensureDir(path.join(cwd, dir));
     }
   }
-  // Template README.md + TEST.md are always created (project guidance files)
-  const templateFiles = {
-    "default": [["default/README.md", "README.md"], ["default/TEST.md", "TEST.md"]],
-    "data-ml": [["data-ml/README.md", "README.md"], ["data-ml/TEST.md", "TEST.md"]],
-    "fullstack": [["fullstack/README.md", "README.md"], ["fullstack/TEST.md", "TEST.md"]]
-  };
-
   // Core files — scale-aware creation
   const files = [
     ["root/README.md", "README.md"],
@@ -1569,11 +1778,14 @@ function initProject(args) {
     files.push(["root/SOUL.md", "SOUL.md"]);
   }
 
-  // Template-specific files (README.md + TEST.md)
+  // Template-specific sandbox files (README.md + TEST.md) — placed under .test/ai/sandboxes/
+  // to avoid overwriting root README.md (Critical fix S-4.1)
   const templateFileList = {
-    "default": [["default/README.md", "README.md"], ["default/TEST.md", "TEST.md"]],
-    "data-ml": [["data-ml/README.md", "README.md"], ["data-ml/TEST.md", "TEST.md"]],
-    "fullstack": [["fullstack/README.md", "README.md"], ["fullstack/TEST.md", "TEST.md"]]
+    "default": [["default/README.md", ".test/ai/sandboxes/default/README.md"], ["default/TEST.md", ".test/ai/sandboxes/default/TEST.md"]],
+    "data-ml": [["data-ml/README.md", ".test/ai/sandboxes/data-ml/README.md"], ["data-ml/TEST.md", ".test/ai/sandboxes/data-ml/TEST.md"]],
+    "fullstack": [["fullstack/README.md", ".test/ai/sandboxes/fullstack/README.md"], ["fullstack/TEST.md", ".test/ai/sandboxes/fullstack/TEST.md"]],
+    "skill": [["skill/README.md", ".test/ai/sandboxes/skill/README.md"], ["skill/TEST.md", ".test/ai/sandboxes/skill/TEST.md"]],
+    "stable-workflow": [["stable-workflow/README.md", ".test/ai/sandboxes/stable-workflow/README.md"], ["stable-workflow/TEST.md", ".test/ai/sandboxes/stable-workflow/TEST.md"]]
   };
   for (const [src, dest] of templateFileList[args.template] || []) {
     files.push([src, dest]);
@@ -1586,22 +1798,38 @@ function initProject(args) {
     args.force
   ));
 
-  console.log(`Spec Loop Kit initialized: ${cwd}`);
-  for (const result of results) {
-    console.log(`${result.status.padEnd(8)} ${path.relative(cwd, result.target)}`);
+  const errors = results.filter(r => r.status === "error");
+  if (errors.length > 0) {
+    console.error(`\n*** ERROR *** ${errors.length} template(s) failed to write:`);
+    for (const err of errors) {
+      console.error(`  ✗ ${path.relative(cwd, err.target)}: ${err.error}`);
+    }
+    process.exitCode = 1;
+  } else {
+    console.log(`\nSpec Loop Kit initialized: ${cwd}`);
+    for (const result of results) {
+      console.log(`${result.status.padEnd(8)} ${path.relative(cwd, result.target)}`);
+    }
   }
 }
 
 function runSubAgentChecklist(cwd, options = {}) {
   const results = [];
 
-  // 1. Check sandbox directory exists and is empty (or cleaned)
+  // 1. Check sandbox directory exists and required files are present
+  // S-3.4 fix: check required files instead of "empty" (init already creates files)
   const sandboxExists = fs.existsSync(cwd);
-  const sandboxEmpty = sandboxExists ? fs.readdirSync(cwd).length === 0 : false;
+  const hasRequiredFiles = sandboxExists
+    ? fs.existsSync(path.join(cwd, "README.md"))
+      && fs.existsSync(path.join(cwd, "TEST.md"))
+      && fs.existsSync(path.join(cwd, "config.json"))
+    : false;
   results.push({
     item: "sandbox_dir",
-    status: sandboxExists && sandboxEmpty ? "pass" : "warn",
-    message: sandboxExists ? (sandboxEmpty ? "OK" : "Directory not empty") : "Missing"
+    status: sandboxExists && hasRequiredFiles ? "pass" : (sandboxExists ? "warn" : "fail"),
+    message: sandboxExists
+      ? (hasRequiredFiles ? "OK (required files present)" : "Missing required files (README.md, TEST.md, config.json)")
+      : "Missing sandbox directory"
   });
 
   // 2. Check TEST.md exists in sandbox root
@@ -1665,8 +1893,12 @@ function runSubAgentChecklist(cwd, options = {}) {
       const platform = process.platform;
       if (platform === "win32") {
         const drive = path.parse(cwd).root.replace("\\", "");
+        // Sec-2.1 fix: whitelist drive letter to prevent command injection
+        if (!/^[A-Za-z]$/.test(drive)) {
+          throw new Error(`Invalid drive letter: ${drive}`);
+        }
         const { execSync } = require("node:child_process");
-        const out = execSync(`wmic logicaldisk where "DeviceID='${drive}'" get FreeSpace /value`, { encoding: "utf8", stdio: "pipe" });
+        const out = execSync(`wmic logicaldisk where "DeviceID='${drive}:'" get FreeSpace /value`, { encoding: "utf8", stdio: "pipe" });
         const match = out.match(/FreeSpace=(\d+)/);
         if (match) {
           const freeMB = parseInt(match[1], 10) / (1024 * 1024);
@@ -1674,8 +1906,12 @@ function runSubAgentChecklist(cwd, options = {}) {
           diskMessage = diskOk ? `OK (${Math.round(freeMB)}MB free)` : `Low disk space (${Math.round(freeMB)}MB free, need ${minSpaceMB}MB)`;
         }
       } else {
-        const { execSync } = require("node:child_process");
-        const out = execSync(`df -m "${cwd}" | tail -1`, { encoding: "utf8", stdio: "pipe" });
+        const result = spawnSync("df", ["-m", cwd], { encoding: "utf8" });
+        if (result.status !== 0) {
+          throw new Error(`df command failed: ${result.stderr || result.error?.message || "unknown error"}`);
+        }
+        const lines = result.stdout.trim().split("\n");
+        const out = lines[lines.length - 1];
         const parts = out.trim().split(/\s+/);
         const freeMB = parseInt(parts[3], 10);
         diskOk = freeMB >= minSpaceMB;
@@ -1828,25 +2064,39 @@ function generateHeartbeatWatchdogScript() {
     "$stdoutFile = $null",
     "",
     "function Test-ProcessAlive {",
-    "  param([int]$TargetPid)",
+    "  param([int]$TargetPid, [string]$ExpectedName)",
     "  try {",
-    "    $proc = Get-Process -Id $TargetPid -ErrorAction SilentlyContinue",
-    "    return $proc -ne $null -and -not $proc.HasExited",
+    "    $proc = Get-Process -Id $TargetPid -ErrorAction Stop",
+    "    # Sec-10.1: verify process name to prevent PID reuse attacks",
+    "    if ($ExpectedName -and $proc.Name -ne $ExpectedName) {",
+    "      Write-Warning \"[watchdog] PID $TargetPid name mismatch: expected $ExpectedName, got $($proc.Name). Skipping.\"",
+    "      return $false",
+    "    }",
+    "    return -not $proc.HasExited",
     "  } catch {",
+    "    # V-7: report specific error instead of silently swallowing",
+    "    Write-Warning \"[watchdog] Get-Process PID $TargetPid failed: $($_.Exception.Message)\"",
     "    return $false",
     "  }",
     "}",
     "",
     "function Stop-ProcessGracefully {",
-    "  param([int]$TargetPid)",
+    "  param([int]$TargetPid, [string]$ExpectedName)",
     "  try {",
-    "    Stop-Process -Id $TargetPid -Force:$false -ErrorAction SilentlyContinue",
+    "    $proc = Get-Process -Id $TargetPid -ErrorAction Stop",
+    "    # Sec-10.1: verify process name before termination",
+    "    if ($ExpectedName -and $proc.Name -ne $ExpectedName) {",
+    "      Write-Warning \"[watchdog] PID $TargetPid name mismatch. Aborting termination.\"",
+    "      return",
+    "    }",
+    "    Stop-Process -Id $TargetPid -Force:$false -ErrorAction Stop",
     "    Start-Sleep -Seconds 5",
-    "    if (Test-ProcessAlive -TargetPid $TargetPid) {",
-    "      Stop-Process -Id $TargetPid -Force -ErrorAction SilentlyContinue",
+    "    if (Test-ProcessAlive -TargetPid $TargetPid -ExpectedName $ExpectedName) {",
+    "      Stop-Process -Id $TargetPid -Force -ErrorAction Stop",
     "    }",
     "  } catch {",
-    "    # Process may already be gone",
+    "    # V-7: report specific error",
+    "    Write-Warning \"[watchdog] Stop-Process PID $TargetPid failed: $($_.Exception.Message)\"",
     "  }",
     "}",
     "",
@@ -1935,11 +2185,14 @@ function printUsage() {
   console.log("  spec-loop-kit loop [--help]");
   console.log("    Autonomous cruise helper for /kit-loop. Reads modes/loop.md for checkpoint and scope rules.");
   console.log("    Use this to print the loop-mode reference or validate loop configuration.");
+  console.log("  spec-loop-kit sync [--cwd <path>]");
+  console.log("    Check CLAUDE.md / AGENTS.md / README.md alignment (version, host, anchors).");
+  console.log("    Exits 0 if in sync, exits 1 if discrepancies found.");
 }
 
 try {
   const args = parseArgs(process.argv);
-  if (args.help || args.command === "--help" || args.command === "-h") {
+  if (args.command === "--help" || args.command === "-h" || (!args.command && args.help)) {
     printUsage();
     process.exit(0);
   } else if (args.command === "init") {
@@ -1968,7 +2221,7 @@ try {
       console.log("This command prints the run-mode reference and validates pre-code readiness.");
       console.log("It does not execute code; it guides the AI through modes/run.md and quality/pre-code.md.");
       console.log("");
-      console.log("Pre-code 5-step gate:");
+      console.log("Pre-code gate:");
       console.log("  1. Research the tech stack (check official docs, do not guess APIs).");
       console.log("  2. Read project config (tsconfig, lint rules, .env).");
       console.log("  3. Declare UI toolchain (lock icon library: Lucide/Heroicons/Tabler).");
@@ -2065,6 +2318,39 @@ try {
     console.log("Loop mode reference loaded. The AI should read modes/loop.md for full behavior.");
     console.log("Use --help for a quick reference of the cruise workflow and safety rules.");
     process.exit(0);
+  } else if (args.command === "sync") {
+    const cwd = path.resolve(args.cwd);
+    const issues = [];
+    const claude = readText(cwd, "CLAUDE.md");
+    const agents = readText(cwd, "AGENTS.md");
+    const readme = readText(cwd, "README.md");
+    if (claude && agents) {
+      const claudeVer = claude.match(/Project version: `([^`]+)`/);
+      const agentsVer = agents.match(/Project version: `([^`]+)`/);
+      if (claudeVer && agentsVer && claudeVer[1] !== agentsVer[1]) {
+        issues.push(`Version mismatch: CLAUDE.md=${claudeVer[1]}, AGENTS.md=${agentsVer[1]}`);
+      }
+      const claudeHost = claude.match(/Host: `([^`]+)`/);
+      const agentsHost = agents.match(/Host: `([^`]+)`/);
+      if (claudeHost && agentsHost && claudeHost[1] !== agentsHost[1]) {
+        issues.push(`Host mismatch: CLAUDE.md=${claudeHost[1]}, AGENTS.md=${agentsHost[1]}`);
+      }
+    }
+    if (readme) {
+      const readmeVer = readme.match(/(?:version|版本)[\s:=]+v?(\d+\.\d+\.\d+)/i);
+      const pkg = parseJsonFile(cwd, "package.json");
+      if (readmeVer && pkg?.version && readmeVer[1] !== pkg.version) {
+        issues.push(`README.md version (${readmeVer[1]}) differs from package.json (${pkg.version})`);
+      }
+    }
+    if (issues.length > 0) {
+      console.error("Sync issues found:");
+      for (const issue of issues) console.error(`  - ${issue}`);
+      process.exit(1);
+    } else {
+      console.log("Host entries and README are in sync.");
+      process.exit(0);
+    }
   } else {
     printUsage();
     process.exit(args.command ? 1 : 0);

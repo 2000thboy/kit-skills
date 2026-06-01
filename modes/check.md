@@ -55,7 +55,7 @@ Merge hedge findings into quality report
 
 **[条件确认] 规则**：
 
-- **L1 + L2 全部通过** → Auto-skip confirmation, proceed directly to archive (沉淀)
+- **L1 + L2 全部通过** → Present summary to user and ask for explicit confirmation before archive. Do not auto-skip unless user has previously granted auto-archive permission in `.kit/config.json` (`auto_archive: true`).
 - **Only P1/P2 found** → Auto-fix low-risk issues, summarize report to user (non-blocking)
 - **P0 or high-risk fix found** → Pause, wait for user confirmation before fixing
 
@@ -162,7 +162,7 @@ The quality flywheel does not run forever. Exit when:
 1. **连续 2 轮无新问题** → Convergence exit. Quality has stabilized.
 2. **问题严重性降级** → P0 → P1 → P2. Each round finds less severe issues. Exit after P2-only round.
 3. **用户说"够了"** → Immediate exit. User has explicitly accepted current quality.
-4. **最大轮次达到** → Default 3 rounds, configurable via `.kit/config.json` → `kit_check_max_rounds`.
+4. **最大轮次达到** → Default 3 rounds, hard maximum 10 rounds. If `.kit/config.json` is missing or `kit_check_max_rounds` is undefined, hard-default to 3. Never exceed 10 rounds regardless of configuration.
 
 Exit procedure:
 

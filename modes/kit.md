@@ -33,6 +33,62 @@ Use `knowledge/question-bank.json` IDs instead of pasting repeated questions:
 
 ---
 
+## 启动场景识别与用户门禁（Invocation Scenario & User Gate）
+
+每次调用 KIT 必须先判断启动场景，**用户始终是门禁，不可跳过**。
+
+### 两种启动场景
+
+| 场景 | 触发词 | 处理流程 |
+|------|--------|---------|
+| **从头开始** | "用 kit-skills 帮我开发 xxx" / "新建项目" / "建档" | Brainstorm → 分类 → 生成三件套 → **用户确认** → kitrun |
+| **中间介入** | "继续按 kit-skills 流程开发" / "继续" / "接着做" | **检查当前状态** → 如有漂移 → **Brainstorm 到用户足够清楚** → **PLAN 确认** → 才能继续 |
+
+### 规则优先级（Rule Priority）
+
+当用户明确使用 KIT 流程时（如说"按 kit-skills 开发"、"/kit"、"继续 kit"），**KIT 流程规则优先于通用对话规则**：
+
+- **通用 Trust 规则**：用户说"就这样"时不再追问细节 —— **适用于日常对话**
+- **KIT 流程规则**：中间介入必须先头脑风暴到清楚 —— **适用于 KIT 上下文**
+
+**判断标准**：用户是否明确调用了 KIT 命令或提及 kit-skills。如果是，执行 KIT 规则；如果不是，执行通用 Trust 规则。
+
+### 确认与阻断项的复合条件（M-1）
+
+**"确认"和"🔴 已修复"是两个独立条件，必须同时满足**：
+
+| 条件 A | 条件 B | 结果 |
+|--------|--------|------|
+| 用户已确认 | 🔴 已修复 | ✅ 通过 |
+| 用户已确认 | 🔴 仍存在 | ❌ 不通过，必须先修复 🔴 |
+| 用户未确认 | 🔴 已修复 | ❌ 不通过，必须经用户确认 |
+| 用户未确认 | 🔴 仍存在 | ❌ 不通过，两者都必须满足 |
+
+AI 不得因用户说"确认"就忽略 🔴 阻断项。
+
+### 中间介入强制流程
+
+当用户说"继续"或"按 kit-skills 开发"但项目已有 `.plan/` 时：
+
+1. **读取当前事实**：`.plan/PRD.md`, `.plan/SPEC.md`, `.plan/CHECKLIST.md`, `.kit/`
+2. **判断是否需要 brainstorm**：
+   - 如果用户目标与当前 PLAN 一致 → 报状态简报，询问是否直接继续
+   - 如果用户目标**不清晰**、与当前 PLAN **有差异**、或用户**换了方向** → **必须先 brainstorm 到用户足够清楚**
+3. **PLAN 确认**：任何变更或继续前，必须经用户书面确认
+4. **禁止行为**：AI 不得因用户说"快点"、"直接做"就跳过头脑风暴和确认门
+
+### 用户门禁规则
+
+- **用户是最终门禁**。所有关键决策必须经过用户确认，AI 不得擅自决定。
+- **不接受模糊确认**。仅以下文本视为有效确认：
+  - 中文: **"确认"**
+  - 英文: **"confirm"**
+  - 其他任何文本（包括但不限于 "ok"、"好的"、"行"、"随便"、"sure"、"go ahead"、"yeah"、"没问题"、"可以"）**均视为未确认**。
+  - 唯一例外: 用户在 AskUserQuestion 的多选界面中选择了明确选项，视为对该选项的确认。
+- **3 次未确认处理**：连续 3 次未获明确确认 → 暂停流程，AskUserQuestion 让用户选择跳过/终止/继续。
+
+---
+
 ## 0. Brainstorm: Product Discovery Before 建档
 
 Use this mode when the user wants to explore, shape, compare, or pressure-test an idea before creating project files, or says:
@@ -412,6 +468,280 @@ For coding beginners, cleanup output must not only list files. It must explain t
 
 ---
 
+### 归档分类路径规则（Archive Path Classification）
+
+归档前必须按文件性质选择正确的归档目的地，防止主 plan 被实验候选污染：
+
+**1. 主计划归档（`.plan/archive/`）**
+- 曾作为项目主契约的 PRD、SPEC、CHECKLIST（用户已确认版本）
+- 已完成的里程碑计划、阶段总结
+- 原则：只有过期的"主契约"才进 `.plan/archive/`
+
+**2. 沙盒实验归档（`.test/ai/sandboxes/<sandbox-name>/_archive/`）**
+- 沙盒实验产生的计划候选文件（如 `SUSX-RENPY-V0.2.0-CHECKLIST.md`）
+- 未成为主契约的 draft SPEC、experimental PRD
+- AI 模拟测试的临时计划、对比方案
+- 原则：这些不是主 plan 的长期契约，应归到沙盒内部 archive
+
+**3. 证据链保留（不归档）**
+- `.test/ai/reports/`、`.test/ai/evidence/`、`.test/user/evidence/`
+- 用户验收截图、测试日志、运行证据
+- 原则：证据链随版本保留，不移动
+
+**4. 主文档更新规则**
+- 沙盒候选归档后，主 `.plan/PROJECT-CHECKLIST.md` 或 `.plan/CHECKLIST.md` 只写索引和结论
+- 示例：
+  ```markdown
+  ## 已归档候选
+  - SUSX-RENPY-V0.2.0-CHECKLIST.md → `.test/ai/sandboxes/susx_rebuild_20260524/_archive/v020-v021-plan-candidates/`
+  - 状态：已归沙盒，不再作为主 plan
+  ```
+
+---
+
+### Runtime Index 同步检查（Runtime Index Sync Gate）
+
+归档前必须检查 `.kit/` 中的版本索引与实际计划版本是否一致：
+
+**检查项：**
+- `.kit/version.json` 的 `project_version` 与当前完成版本一致
+- `.kit/config.json` 的 `current_stage`、`completed_tasks` 反映实际状态
+- `.kit/case-runtime-index.json`（如有）的版本标记与当前沙盒版本一致
+- `.kit/model-choice.md` 的模型选择记录与当前使用模型一致
+
+**不一致处理：**
+- 轻微不一致（如缺少字段）→ 自动补全并记录到 `.kit/audit-log.md`
+- 严重不一致（runtime index 停在旧版本）→ 暂停归档，先更新 index，标记 `⚠️ 版本漂移已修复`
+- 多轮沙盒实验时，`.kit/case-runtime-index.json` 必须显式指向当前活跃沙盒版本
+
+**示例：**
+```text
+⚠️ 检测到 .kit/case-runtime-index.json 仍指向 v0.2.0，但当前已完成 v0.2.2。
+正在更新 index → v0.2.2，并记录到 .kit/audit-log.md。
+```
+
+---
+
+### 新沙盒隔离规则（New Sandbox Isolation）
+
+开启新一轮沙盒测试时：
+
+**必须做的：**
+1. 保留旧沙盒成品和证据链（不删除、不覆盖）
+2. 新沙盒命名明确：`renpy-v0.3.0-eval`、`godot-v0.3.0-ab-eval`
+3. 新沙盒只建立测试隔离入口（README.md、TEST.md、config.json）
+4. 更新 `.kit/case-runtime-index.json` 指向新沙盒版本
+5. 在 `.plan/CHECKLIST.md` 记录新旧沙盒边界
+
+**禁止做的：**
+- 不要在新沙盒创建"可玩成品"启动器（避免误导用户认为已可交付）
+- 不要把旧沙盒的半成品复制到新沙盒当起点
+- 不要同时把多个沙盒的 plan 文件留在主 `.plan/` 目录
+
+**沙盒目录结构：**
+```text
+.test/ai/sandboxes/
+  susx_rebuild_20260524/           # 沙盒根
+    _archive/
+      v020-v021-plan-candidates/   # 旧候选归档
+    renpy-v0.3.0-eval/             # 新沙盒入口
+      README.md
+      TEST.md
+      config.json
+    godot-v0.3.0-ab-eval/          # 另一组新沙盒
+      README.md
+      TEST.md
+      config.json
+```
+
+---
+
+## 3. 打包: Pack For Sharing Or Testing
+
+Use this track when the user says:
+
+- 打包
+- pack
+- 封装
+- 生成分享包
+- 生成测试包
+
+### Pack Process（带用户确认门）
+
+**Step 1: 用户确认门**
+
+Before packing, present to the user:
+
+```text
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+/kit-pack 打包确认
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+打包范围:
+  • 核心代码: src/, bin/, modes/ 等
+  • 文档: README.md, SKILL.md, AGENTS.md/CLAUDE.md
+  • 证据: .test/ai/evidence/, .test/ai/reports/
+  • 版本: .kit/version.json
+
+排除项（自动清理）:
+  • 临时文件: logs/, .omc/, .pilotdeck-runtime/
+  • 敏感信息: .env, secrets, API keys
+  • 开发依赖: node_modules/, __pycache__/, .venv/
+
+用户可回复:
+  • "确认" → 执行打包
+  • "修改范围" → 调整后重新确认
+  • "取消" → 不打包
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+**Step 2: 清理临时文件**
+
+```bash
+# 清理开发临时文件
+rm -rf logs/ .omc/ .pilotdeck-runtime/ .pytest_cache/
+rm -rf node_modules/ __pycache__/ .venv/
+rm -f .env secrets.json *.key *.pem
+```
+
+**Step 3: 验证核心文件存在**
+
+```bash
+ls README.md .kit/version.json
+# skill 类型: ls SKILL.md
+# workflow 类型: ls .workflow/README.md
+```
+
+**Step 4: 生成打包输出**
+
+```text
+{project-name}-pack-YYYYMMDD/
+  src/                    # 核心源代码
+  bin/                    # 可执行脚本（如有）
+  modes/                  # 模式定义（如有）
+  templates/              # 模板（如有）
+  quality/                # 质量门禁（如有）
+  knowledge/              # 知识材料（如有）
+  README.md               # 项目说明
+  SKILL.md / AGENTS.md / CLAUDE.md  # 宿主入口
+  .kit/version.json       # 版本合同
+  .test/ai/evidence/      # 测试证据（可选）
+  .test/ai/reports/       # 测试报告（可选）
+  pack-manifest.json      # 打包清单
+```
+
+**pack-manifest.json**:
+```json
+{
+  "project": "{project-name}",
+  "version": "x.y.z",
+  "pack_date": "YYYY-MM-DD",
+  "pack_type": "share | test",
+  "included": ["src/", "README.md", "..."],
+  "excluded": ["logs/", "node_modules/", "..."],
+  "verified_by": "AI | user",
+  "notes": ""
+}
+```
+
+### Pack Gate Rules
+
+- **必须经用户确认后才能打包。** 用户说"打包"不等于确认，必须得到"确认"。
+- **敏感信息必须排除。** `.env`、API key、账号材料不得进入打包输出。
+- **临时文件必须清理。** 开发日志、缓存、依赖目录不得进入打包输出。
+- **核心文件必须存在。** README.md 和版本文件缺失时暂停打包，先补充。
+
+---
+
+## 4. 验收: Acceptance Test Before Handoff
+
+Use this track when the user says:
+
+- test
+- 验收
+- 版本已完成
+- 可以测试了
+- 准备交付
+
+**前提条件**（必须满足，否则拒绝执行）：
+- `.plan/CHECKLIST.md` 中的核心任务已完成
+- 用户明确说"版本已完成"或"边界清晰"
+- 无已知阻塞项（`.kit/blockers.json` 为空或已解决）
+
+### Test Process（带用户确认门）
+
+**Step 1: 验收前提检查**
+
+```text
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+/kit-test 验收确认
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+验收前提检查:
+  • 版本边界是否清晰？
+  • 核心功能是否已完成？
+  • 是否有已知阻塞项？
+
+验收内容:
+  • 打包核心代码 + README
+  • 按 .plan/CHECKLIST.md 验收标准运行测试
+  • 生成验收测试报告
+
+用户可回复:
+  • "确认" → 执行验收
+  • "还有未完成项" → 返回 /kit-run 继续开发
+  • "取消" → 不验收
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+**Step 2: 打包核心代码 + README**
+
+同 `/kit-pack` 的清理和验证步骤，但输出到临时目录 `{project-name}-test-YYYYMMDD/`。
+
+**Step 3: 运行验收测试**
+
+根据项目类型运行对应的验收测试：
+
+- **skill 类型**: 验证 SKILL.md 格式、宿主兼容性、关键命令路由
+- **workflow 类型**: 验证 workflow 脚本可执行性、dry-run 通过
+- **app 类型**: 验证构建通过、核心功能 E2E 测试、截图对比
+- **CLI 类型**: 验证 CLI 帮助输出、核心命令执行、JSON 输出格式
+
+**Step 4: 生成验收报告**
+
+```text
+.test/ai/reports/acceptance-YYYYMMDD.md
+```
+
+报告内容：
+```markdown
+# Acceptance Report: YYYY-MM-DD
+
+## 验收前提
+- [x] 版本边界清晰
+- [x] 核心功能已完成
+- [x] 无阻塞项
+
+## 测试范围
+| 测试项 | 状态 | 证据 |
+|--------|------|------|
+| ... | pass/fail | 路径 |
+
+## 结论
+- 状态: passed / failed / partial
+- 可交付: yes / no
+- 备注: ...
+```
+
+### Test Gate Rules
+
+- **必须经用户确认后才能验收。** 用户说"test"不等于确认，必须得到"确认"。
+- **版本未完成时拒绝验收。** 如 `.plan/CHECKLIST.md` 有未完成核心任务，返回 `/kit-run`。
+- **验收失败时停止交付。** 报告失败项，返回修复流程。
+- **验收通过后生成报告。** 报告写入 `.test/ai/reports/`，作为交付证据。
+
+---
+
 ## Gates
 
 ### Archive Interaction Gate
@@ -661,16 +991,17 @@ When AI self-test passes, AI **must** remind the user:
 
 **Session Start (强制)**:
 1. Read `.kit/config.json` for current status
-2. Read `.plan/PRD.md`, `.plan/SPEC.md`, `.plan/CHECKLIST.md`
-3. If `.kit/interrupted/` exists, list interrupted sessions and ask user whether to resume
-4. If `.kit/decisions.md` exists, read the last 10 entries for recent context
-5. Present a status brief before any action
+2. **状态过期检查**: 如果 `.kit/config.json` 的 `last_updated` 超过 30 天，标记 `⚠️ 项目状态可能过期`，建议用户重新确认当前目标和范围
+3. Read `.plan/PRD.md`, `.plan/SPEC.md`, `.plan/CHECKLIST.md`
+4. If `.kit/interrupted/` exists, list interrupted sessions and ask user whether to resume
+5. If `.kit/decisions.md` exists, read the last 10 entries for recent context
+6. Present a status brief before any action
 
 **Session End (强制)**:
 1. Update `.kit/config.json`: stage, progress, completed_tasks, next_tasks, blockers, snapshot_hash, last_updated
 2. If session was interrupted mid-task: Write `.kit/interrupted/YYYY-MM-DD-<topic>.md`
 3. If key decisions were made: Append to `.kit/decisions.md` with timestamp and decision summary
-4. If blockers were encountered: Update `.kit/blockers.json`
+4. If blockers were encountered: Update `.kit/blockers.json` (for non-loop sessions) or append to `.cron/logs/YYYY-MM-DD/blocker-<timestamp>.md` (for `/kit-loop` sessions, per `modes/loop.md`)
 
 **Session Interruption Recovery**:
 - Mid-session topic changes are recorded as interruptions, not lost
@@ -817,6 +1148,12 @@ For 建档, report:
 - SPEC 未经用户书面确认 → 不得生成 CHECKLIST（记录违规到 `.kit/audit-log.md`）
 - CHECKLIST 未经用户书面确认 → 不得进入 kitrun（记录违规到 `.kit/audit-log.md`）
 - 违反以上规则视为流程违规，需在报告中明确标注
+
+**例外条款（quick 项目）:**
+- `quick` scale 项目允许将 PRD+SPEC+CHECKLIST 合并为单个 `PLAN.md`
+- 此时"三件套确认"转换为"PLAN.md 整体确认"——用户确认 PLAN.md 一次即视为三件套全部确认
+- 合并后的 PLAN.md 底部仍需添加确认标记
+- 若用户后续要求拆分为独立 PRD/SPEC/CHECKLIST，则恢复标准三件套确认流程
 
 For 归档, report:
 

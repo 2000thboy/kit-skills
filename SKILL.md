@@ -1,7 +1,7 @@
 ---
 name: kit-skills
 description: USE WHEN user wants to turn product ideas into structured development plans — brainstorm, 建档 (init project structure), 归档 (archive), or manage PRD/SPEC/CHECKLIST. NOT a code generator. NOT for single-file edits or "just write code" requests.
-argument-hint: "[brainstorm|init|archive|sandbox] [--level 1|2|3] [--template default|data-ml|fullstack] [--host auto|claude]"
+argument-hint: "[init|validate|audit|checklist|run|check|loop] [--level 0|1|2|3|4] [--profile auto|generic-project|frontend-ui|long-content-publishing|archive-cleanup|skill-package] [--template default|data-ml|fullstack] [--host auto|generic|codex|claude|opencode|agents] [--owner <name>] [--cwd <path>] [--force] [--json] [--workflow] [--experiment] [--with-test] [--with-eval] [--with-cron] [--with-user] [--with-soul] [--long-task] [--skip-brainstorm]"
 ---
 
 # Kit Skills v2.0
@@ -42,6 +42,9 @@ KIT is not only an archive or cleanup tool. Archiving is one capability. The pri
 ## Pre-flight
 
 - 确认用户目标、目标仓库、当前分支和是否允许写文件。
+- **识别启动场景**：
+  - **从头开始**：用户说"用 kit-skills 帮我开发 xxx" → 走完整建档流程
+  - **中间介入**：用户说"继续按 kit-skills 流程开发" → **必须先头脑风暴到用户足够清楚，然后 PLAN 确认，才能继续**
 - 检查是否已有 `.plan/`、`.kit/`、`PRD.md`、`SPEC.md`、`CHECKLIST.md` 或 `PLAN.md`。
 - 如果 `.plan/` 已存在，不得覆盖；先询问用户是复用、追加还是归档。
 - 如果发现 `.kit/` 临时状态跨会话残留，先清理无用草稿和过期缓存；不删除用户产物。
@@ -49,13 +52,29 @@ KIT is not only an archive or cleanup tool. Archiving is one capability. The pri
 
 ## Command Decision
 
-- 用户只给想法或需求：用 `/kit` 建档。
+- **用户只给想法或需求（从头开始）**：用 `/kit` 建档 → brainstorm → 分类 → 生成三件套 → 用户确认 → kitrun
+- **用户说"继续按 kit-skills 流程开发"（中间介入）**：**必须先检查当前状态 → 如有漂移先 brainstorm → PLAN 确认 → 才能继续**。不可跳过头脑风暴和确认门。
 - 用户要按计划实现：用 `/kit-run`。
 - 用户要审查计划、质量或执行结果：用 `/kit-check`。
 - 用户要持续迭代、修复检查结果或跑闭环：用 `/kit-loop`。
+- **用户说"打包"、"pack"、"封装"**：用 `/kit pack` → **用户确认** → 清理临时文件 → 打包核心代码+README+证据 → 生成可分享沙盒。
+- **用户说"test"、"验收"、"版本已完成"**：用 `/kit test` → **用户确认** → 确认边界清晰 → 打包核心代码+README → 运行验收测试 → 生成测试报告。
 - 用户空输入、只输入 `/kit` 或意图不清：显示 help/usage，并追问一个关键问题。
 
 ## Critical Gates
+
+### User Gate（用户门禁 — 不可跳过）
+
+**用户始终是门禁。所有关键决策必须经过用户确认，AI 不得擅自替用户决定。**
+
+强制确认点：
+- 中间介入时：必须先头脑风暴到用户足够清楚
+- PLAN 生成后：必须经用户确认才能归档/开发
+- 归档前：必须经用户确认
+- 范围变更时：必须经用户确认
+- 涉及外部写入、发布、账号操作时：必须经用户确认
+
+**不接受模糊确认。** "ok"、"好的"、"行" 等不等于确认。必须得到明确的"确认"或"confirm"。
 
 - Scope Drift Gate：实施前后都要核对目标、范围和验收标准；新增范围必须得到用户确认。
 - Archive Gate：归档前列出将移动/压缩/删除的文件，用户确认后再执行。
@@ -82,9 +101,9 @@ Act as a concise toxic PM coach plus careful architect:
 - When architecture choices produce different product outcomes, say so plainly. Do not hide major tradeoffs behind "both are fine".
 - Identify no-return or expensive-return points before implementation, such as framework choice, data model, auth model, content pipeline shape, publishing surface, storage format, and migration path.
 
-## Four-Command Routing
+## Six-Command Routing
 
-KIT v2.0 uses four commands. All detailed behavior lives in `modes/` and `quality/`.
+KIT v2.0 uses six commands. All detailed behavior lives in `modes/` and `quality/`.
 
 | Command | Purpose | Detailed Spec |
 |---------|---------|---------------|
@@ -92,6 +111,8 @@ KIT v2.0 uses four commands. All detailed behavior lives in `modes/` and `qualit
 | `/kit-run <mode>` | Execution layer: coding, testing, running | `modes/run.md` |
 | `/kit-check <subcommand>` | Quality layer: inspection, research, planning | `modes/check.md` |
 | `/kit-loop <duration>` | Autonomous cruise: self-iterating development | `modes/loop.md` |
+| `/kit-pack` | Packaging layer: clean, verify, pack for sharing/testing | `modes/kit.md` (Pack section) |
+| `/kit-test` | Acceptance layer: boundary check, acceptance test, report | `modes/kit.md` (Test section) |
 
 ## State Machine
 
@@ -131,15 +152,41 @@ KIT v2.0 uses four commands. All detailed behavior lives in `modes/` and `qualit
                    +--------------+
 ```
 
+**Pack & Test Flow:**
+
+```
++-------------+      +-------------+      +-------------+
+|  /kit-pack  |---->| User confirm |---->| Clean & verify |
+|  (打包分享)  |      |   用户确认   |      |  清理临时文件   |
++-------------+      +-------------+      +------+------+
+                                                  |
++-------------+      +-------------+             v
+|  /kit-test  |---->| User confirm |---->+-------------+
+|  (验收测试)  |      |   用户确认   |     | Pack core   |
++-------------+      +-------------+     | + README    |
+                                         +------+------+
+                                                |
+                                         +------v------+
+                                         | Run tests   |
+                                         | (按类型)    |
+                                         +------+------+
+                                                |
+                                         +------v------+
+                                         | Generate    |
+                                         | acceptance  |
+                                         | report      |
+                                         +-------------+
+```
+
 ## File Reference
 
-- `modes/kit.md` — Brainstorm, init, archive, sandbox templates, gates (Hardcoded Assumption, Scope Drift, Archive Interaction, etc.)
-- `modes/run.md` — Pre-code 5-step gate, file-write 4-item self-check, frontend-first flow, implementation closure 5-item, Codex integration, parallel execution
+- `modes/kit.md` — Brainstorm, init, archive, **pack**, **test**, sandbox templates, gates (Hardcoded Assumption, Scope Drift, Archive Interaction, etc.)
+- `modes/run.md` — Pre-code gate, file-write 4-item self-check, frontend-first flow, implementation closure 5-item, Codex integration, parallel execution
 - `modes/check.md` — Quality flywheel, divergent inspection, Vibe Coding 18-item checklist, L1/L2/L3 grading, adaptive exit, research dual-engine, regression archive
 - `modes/loop.md` — Full-trust autonomous mode, user confirmation gate, checkpoint reports, scope boundaries, evidence trail, rollback plan, termination
 - `quality/` — Granular gate definitions referenced by modes (pre-code, post-code, UI, data, API)
 - `knowledge/` — Explanatory material for framework choices, not project truth
-- `templates/` — Reusable templates for reports, session briefs, loop state
+- `templates/` — Reusable templates for reports, session briefs, loop state, **pack manifests**
 
 ## Portable Package Layout
 

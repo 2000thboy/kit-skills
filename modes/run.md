@@ -16,7 +16,7 @@ Execution layer: coding, testing, running.
 ## Responsibilities
 
 - Read `.plan/SPEC.md` and `.plan/CHECKLIST.md`
-- Enforce pre-code 5-step gate before any implementation
+- Enforce pre-code gate before any implementation
 - Enforce file-write 4-item self-check before every file write
 - Follow frontend-first flow for UI projects
 - Verify implementation closure 5-item before claiming completion
@@ -25,7 +25,7 @@ Execution layer: coding, testing, running.
 
 ---
 
-## Pre-Code 5-Step Gate
+## Pre-Code Gate
 
 Before writing any code:
 
@@ -45,7 +45,7 @@ Before writing any code:
    - 如果存在 🔴 阻断项 → 停止，报告 blocker，不得进入编码
    - 如果只有 🟠/🟡 → 记录风险，可继续但需在实现中关注
    - 如果无 PM 审计文件（quick 项目可能跳过）→ 记录 "PM audit skipped" 到 `.kit/audit-log.md`
-7. **检查用户确认状态** — Read `.plan/PRD.md`、`.plan/SPEC.md`、`.plan/CHECKLIST.md` 底部确认标记：
+8. **检查用户确认状态** — Read `.plan/PRD.md`、`.plan/SPEC.md`、`.plan/CHECKLIST.md` 底部确认标记：
    - 未经用户确认的文档 → 停止，返回 `/kit` 模式要求确认
    - 确认标记格式：`✅ 用户确认 | 时间: ... | 版本: ...`
 
@@ -112,8 +112,17 @@ Implementation Closure 5-Item ✅
 - Run `--security` mode when code touches: auth, file upload, DB, external API calls
 - Run `--deep` mode before `/kit archive` (final gate)
 - If hedge finds Critical/High issues → block completion, return to fix
+- **Guard**: If `/hedge` skill is not installed, perform a manual self-check using the Vibe Coding 18-item checklist (`modes/check.md`) and record "hedge skipped: skill not found" in `.kit/audit-log.md`
 
 **Integration with Codex:**
+Before invoking Codex, verify the CLI is available:
+```powershell
+# Guard: verify Codex CLI is installed
+try { codex --version } catch {
+  Write-Warning "Codex CLI not found. Install with: npm install -g @openai/codex"
+  # Fallback: use Claude Agent tool for implementation instead
+}
+```
 After Codex completes implementation, run:
 ```powershell
 codex exec --cd <project-dir> "Run hedge quick check on changed files. If score < 75, fix issues and re-verify."
@@ -129,7 +138,7 @@ Codex participates via CLI, not as a skill host:
 
 ```powershell
 # Read .plan/SPEC.md first, then implement the task
-codex exec --cd <project-dir> "Read .plan/SPEC.md and .plan/CHECKLIST.md, then implement the next unchecked task. Follow the pre-code 5-step gate and file-write 4-item self-check."
+codex exec --cd <project-dir> "Read .plan/SPEC.md and .plan/CHECKLIST.md, then implement the next unchecked task. Follow the pre-code gate and file-write 4-item self-check."
 ```
 
 Rules:
@@ -163,7 +172,7 @@ Rules:
 
 硬性顺序：沙盒就绪 → TEST.md 就位 → 才启动子代理
 
-扩展检查清单（8项）：
+扩展检查清单（9项）：
 
 - [ ] 沙盒目录存在且为空（或已清理）
 - [ ] TEST.md 存在于沙盒根目录
@@ -180,7 +189,7 @@ Rules:
 ```
 1. 创建沙盒目录（git clone 或 cp -r）
 2. 将模板 README.md + TEST.md 复制到沙盒根目录
-3. 运行检查清单（8项逐项确认）
+3. 运行检查清单（9项逐项确认）
 4. ──────────────────────────────
 5. 才启动子代理（Agent tool + isolation:"worktree" 或指定 cwd）
 ```

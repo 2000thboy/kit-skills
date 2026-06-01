@@ -291,13 +291,14 @@ A blocker is any condition that prevents the loop from making progress:
     └─ 用户停止 → 终止 loop
 ```
 
-### 不写 .kit/blockers.json
+### Blocker 记录位置
 
-**Important**: `/kit-loop` does **not** write to `.kit/blockers.json`. That file is reserved for heartbeat monitoring (`modes/check.md`).
+**Important**: `/kit-loop` does **not** write to `.kit/blockers.json`. That file is reserved for heartbeat monitoring (`modes/check.md`) and non-loop session blockers (`modes/kit.md` Session End).
 
 Loop blockers are recorded in:
 - `.cron/logs/YYYY-MM-DD/blocker-<timestamp>.md` (detailed report)
 - `.cron/logs/YYYY-MM-DD/kit-loop-<start-time>.log` (log entry)
+- Never in `.kit/blockers.json` — loop blockers must be isolated from heartbeat state to prevent cross-session pollution
 
 ---
 

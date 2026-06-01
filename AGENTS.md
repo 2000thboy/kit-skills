@@ -1,7 +1,7 @@
 # AGENTS.md — kit-skills
 
-Project version: `0.3.0`
-KIT template version: `0.3.0`
+Project version: `0.4.1`
+KIT template version: `0.4.1`
 Host: `codex/generic`
 
 Read in this order:

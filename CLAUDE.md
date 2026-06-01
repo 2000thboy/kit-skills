@@ -1,7 +1,7 @@
 # CLAUDE.md — kit-skills
 
-Project version: `0.3.0`
-KIT template version: `0.3.0`
+Project version: `0.4.1`
+KIT template version: `0.4.1`
 Host: `claude`
 
 Claude must read this file as the primary host entry. `AGENTS.md` is the Codex/generic bridge, not the Claude source of truth.
