@@ -23,7 +23,7 @@ Rules:
 
 - Keep this file aligned with `AGENTS.md`, `README.md`, `SKILL.md`, `package.json`, and `.kit/version.json`.
 - `SKILL.md` is the skill entrypoint. `README.md` is the human onboarding entry.
-- `modes/` defines the four commands: `/kit`, `/kit-run`, `/kit-check`, `/kit-loop`.
+- `modes/` defines the eight commands: `/kit`, `/kit-new`, `/kit-status`, `/kit-run`, `/kit-check`, `/kit-loop`, `/kit-pack`, `/kit-test`.
 - `quality/` defines the granular gates referenced by modes.
 - Use `bin/spec-loop-kit.mjs` for helper behavior; do not document validator rules that the helper cannot check.
 - Keep `.test/ai/` for AI self-checks and simulated users.
