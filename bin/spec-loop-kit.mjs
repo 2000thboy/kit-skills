@@ -10,7 +10,7 @@ const templates = path.join(root, "templates");
 
 // Graceful interruption: ensure partial writes are not left behind
 process.on("SIGINT", () => {
-  process.stderr.write("\n[spec-loop-kit] Interrupted.\n");
+  process.stderr.write("\n[spec-loop-kit] 已中断.\n");
   process.exit(130);
 });
 const VALID_PROFILES = new Set([
@@ -187,14 +187,14 @@ function render(text, data) {
     .replaceAll("{{scale}}", data.scale);
   const leftover = result.match(/\{\{[^}]+\}\}/g);
   if (leftover) {
-    console.warn(`[spec-loop-kit] Warning: unrendered placeholders in template: ${leftover.join(", ")}`);
+    console.warn(`[spec-loop-kit] 警告: 模板中存在未渲染占位符: ${leftover.join(", ")}`);
   }
   return result;
 }
 
 function writeTemplate(source, target, data, force) {
   if (!fs.existsSync(source)) {
-    return { target, status: "error", error: `Template source not found: ${source}` };
+    return { target, status: "error", error: `未找到模板源: ${source}` };
   }
   const existed = fs.existsSync(target);
   if (existed && !force) {
@@ -890,56 +890,56 @@ function checkHardcodedAssumptions(cwd, report) {
       code: "hardcoded-local-user-path",
       label: "local user path",
       regex: /\b[A-Za-z]:\\Users\\[^\\\s"'`]+|\/Users\/[^/\s"'`]+|\/home\/[^/\s"'`]+|\/root\/[^/\s"'`]+/i,
-      fix: "Move local machine paths into config/env/test fixtures, or mark them as example-only in docs."
+      fix: "将本机路径移入 config/env/test fixtures，或在文档中标记为仅示例."
     },
     {
       severity: "p1",
       code: "hardcoded-browser-profile",
       label: "browser profile or user-data-dir",
       regex: /(user-data-dir|profile-directory|Chrome Profile|Default\\Preferences|Local State|browser profile|浏览器\s*profile|登录态路径)/i,
-      fix: "Do not bake login/browser profile paths into shared code. Record the host-local setup and keep account material out of git."
+      fix: "不要将登录/浏览器 profile 路径硬编码到共享代码中. 记录宿主本地设置并将账号材料排除在 git 外."
     },
     {
       severity: "p1",
       code: "hardcoded-platform-identity",
       label: "platform/account/workspace id",
       regex: /\b(user|account|tenant|workspace|project|book|org|team|channel|chat|file|folder|platform)[_-]?id\b\s*[:=]\s*["']?[A-Za-z0-9_-]{6,}/i,
-      fix: "Confirm whether the id is environment-specific. Move it into config/env or document why it is intentionally fixed."
+      fix: "确认该 id 是否与环境相关. 将其移入 config/env 或记录为何故意固定."
     },
     {
       severity: "p1",
       code: "hardcoded-secret-like-literal",
       label: "secret-like literal",
       regex: /\b(OPENAI_API_KEY|ANTHROPIC_AUTH_TOKEN|api[_-]?key|secret|token|cookie|sessionid)\b\s*[:=]\s*["'][^"']{8,}["']/i,
-      fix: "Remove committed secret-like values. Use local ignored config, env vars, or a secret manager."
+      fix: "移除已提交的类密钥值. 使用本地忽略配置、环境变量或密钥管理器."
     },
     {
       severity: "p2",
       code: "hardcoded-localhost-port",
       label: "localhost or fixed port",
       regex: /\b(localhost|127\.0\.0\.1|0\.0\.0\.0):\d{2,5}\b/i,
-      fix: "Confirm whether the port is a project contract or just a local example. Record it in SPEC/test docs if intentional."
+      fix: "确认该端口是项目契约还是仅本地示例. 如果是故意的，记录在 SPEC/测试文档中."
     },
     {
       severity: "p2",
       code: "hardcoded-temp-or-download-path",
       label: "temp/download path",
       regex: /\b(downloads?|tmp|temp|output_path|download_dir)\b\s*[:=]\s*["'][^"']+["']|\/tmp\/|%TEMP%|%TMP%/i,
-      fix: "Use .test/ai sandboxes or configurable temp paths; do not make one machine's temp/download path the project contract."
+      fix: "使用 .test/ai 沙盒或可配置临时路径；不要将单台机器的临时/下载路径作为项目契约."
     },
     {
       severity: "p2",
       code: "hardcoded-placeholder-value",
       label: "placeholder value",
       regex: /\b(your[-_ ]?name|your[-_ ]?username|your[-_ ]?api[-_ ]?key|replace[-_ ]?me|changeme|example\.com)\b/i,
-      fix: "Replace placeholders in active project files, or mark them clearly as examples in README/test guides."
+      fix: "替换活跃项目文件中的占位符，或在 README/测试指南中明确标记为示例."
     },
     {
       severity: "p2",
       code: "hardcoded-floating-model-alias",
       label: "floating model alias",
       regex: /\b(model|MODEL|model_id|provider_model)\b\s*[:=]\s*["']?(latest|auto|default|sonnet|opus|haiku)["']?/i,
-      fix: "Pin the model or document alias resolution, upgrade policy, and revalidation trigger in Model / Agent Risk Ledger."
+      fix: "固定模型或记录别名解析、升级策略和重新验证触发器到 Model / Agent Risk Ledger."
     }
   ];
   const matches = collectPatternMatches(cwd, patterns);
@@ -955,7 +955,7 @@ function checkHardcodedAssumptions(cwd, report) {
       report,
       item.severity,
       item.code,
-      `Potential hardcoded ${item.label} found (${item.matches.length} match${item.matches.length === 1 ? "" : "es"}): ${samples}`,
+      `发现潜在硬编码 ${item.label} (${item.matches.length} 个匹配${item.matches.length === 1 ? "" : "es"}): ${samples}`,
       samples,
       item.fix
     );
@@ -965,25 +965,25 @@ function checkHardcodedAssumptions(cwd, report) {
 function checkVersionContract(cwd, report) {
   const version = parseJsonFile(cwd, ".kit/version.json");
   if (!version) {
-    addIssue(report, "p1", "missing-version-contract", "Missing or invalid .kit/version.json.", ".kit/version.json", "Create .kit/version.json and keep project_version aligned with package.json, AGENTS.md, git tags, and release notes.");
+    addIssue(report, "p1", "missing-version-contract", "缺少或无效的 .kit/version.json.", ".kit/version.json", "创建 .kit/version.json 并保持 project_version 与 package.json, AGENTS.md, git 标签和发布说明一致.");
     return;
   }
 
   const projectVersion = version.project_version;
   const pkg = parseJsonFile(cwd, "package.json");
   if (pkg?.version && projectVersion && pkg.version !== projectVersion) {
-    addIssue(report, "p1", "version-mismatch-package", `package.json version (${pkg.version}) differs from .kit/version.json (${projectVersion}).`, "package.json / .kit/version.json", "Update both files in the same release change.");
+    addIssue(report, "p1", "version-mismatch-package", `package.json 版本 (${pkg.version}) 与 .kit/version.json (${projectVersion}) 不一致.`, "package.json / .kit/version.json", "在同一次发布变更中更新两个文件.");
   }
   const kitConfig = parseJsonFile(cwd, ".kit/config.json");
   if (kitConfig?.project_version && projectVersion && kitConfig.project_version !== projectVersion) {
-    addIssue(report, "p1", "version-mismatch-kit-config", `.kit/config.json version (${kitConfig.project_version}) differs from .kit/version.json (${projectVersion}).`, ".kit/config.json / .kit/version.json", "Update the status snapshot and version contract together.");
+    addIssue(report, "p1", "version-mismatch-kit-config", `.kit/config.json 版本 (${kitConfig.project_version}) 与 .kit/version.json (${projectVersion}) 不一致.`, ".kit/config.json / .kit/version.json", "同时更新状态快照和版本契约.");
   }
   const testConfig = parseJsonFile(cwd, ".test/config.json");
   if (testConfig?.project_version && projectVersion && testConfig.project_version !== projectVersion) {
-    addIssue(report, "p1", "version-mismatch-test-config", `.test/config.json version (${testConfig.project_version}) differs from .kit/version.json (${projectVersion}).`, ".test/config.json / .kit/version.json", "Update the test package version and KIT version contract together.");
+    addIssue(report, "p1", "version-mismatch-test-config", `.test/config.json 版本 (${testConfig.project_version}) 与 .kit/version.json (${projectVersion}) 不一致.`, ".test/config.json / .kit/version.json", "同时更新测试包版本和 KIT 版本契约.");
   }
   if (testConfig && (!testConfig.ai || !testConfig.user)) {
-    addIssue(report, "p1", "test-config-missing-lanes", ".test/config.json does not define separate ai and user lanes.", ".test/config.json", "Define .test/ai for AI self-checks and .test/user for real user testing packages.");
+    addIssue(report, "p1", "test-config-missing-lanes", ".test/config.json 未定义独立的 ai 和 user 通道.", ".test/config.json", "为 AI 自检定义 .test/ai，为真实用户测试包定义 .test/user.");
   }
 
   const hostEntry = report.evidence.host?.entry || "AGENTS.md";
@@ -996,7 +996,7 @@ function checkVersionContract(cwd, report) {
   for (const [rel, code] of versionTextTargets) {
     const text = readText(cwd, rel);
     if (text && projectVersion && !text.includes(projectVersion)) {
-      addIssue(report, "p2", code, `${rel} exists but does not record the current project version.`, rel, "Add the same project_version used by .kit/version.json.");
+      addIssue(report, "p2", code, `${rel} 存在但未记录当前项目版本.`, rel, "添加与 .kit/version.json 相同的 project_version.");
     }
   }
 }
@@ -1006,18 +1006,18 @@ function checkHostEntry(cwd, report) {
   const entry = hostEntryFor(host);
   const entryText = readText(cwd, entry);
   if (!entryText) {
-    addIssue(report, "p1", "missing-host-entry", `Missing host entry ${entry} for detected host ${host}.`, entry, `Create ${entry} and point it to .plan/, .kit/, .workflow/, and .test/.`);
+    addIssue(report, "p1", "missing-host-entry", `缺少检测到宿主 ${host} 的入口文件 ${entry}.`, entry, `创建 ${entry} 并指向 .plan/, .kit/, .workflow/ 和 .test/.`);
     return;
   }
   const requiredAnchors = [".plan", ".kit", ".workflow", ".test"];
   const missingAnchors = requiredAnchors.filter((anchor) => !entryText.includes(anchor));
   if (missingAnchors.length > 0) {
-    addIssue(report, "p1", "host-entry-missing-kit-anchors", `${entry} does not reference required KIT anchors: ${missingAnchors.join(", ")}.`, entry, "Reference .plan/, .kit/, .workflow/, and .test/ so the host reads the right contract.");
+    addIssue(report, "p1", "host-entry-missing-kit-anchors", `${entry} 未引用必需的 KIT 锚点: ${missingAnchors.join(", ")}.`, entry, "引用 .plan/, .kit/, .workflow/ 和 .test/ 以便宿主读取正确的契约.");
   }
   if (host === "claude") {
     const agents = readText(cwd, "AGENTS.md");
     if (agents && !includesAny(agents, ["CLAUDE.md", ".plan", ".kit", ".workflow", ".test"])) {
-      addIssue(report, "p2", "agents-not-bridged-for-claude", "AGENTS.md exists in a Claude-hosted project but does not bridge to CLAUDE.md or KIT anchors.", "AGENTS.md", "Make CLAUDE.md the Claude primary entry; AGENTS.md may exist only as a bridge for other hosts.");
+      addIssue(report, "p2", "agents-not-bridged-for-claude", "AGENTS.md 存在于 Claude 宿主项目但未桥接到 CLAUDE.md 或 KIT 锚点.", "AGENTS.md", "将 CLAUDE.md 作为 Claude 主入口；AGENTS.md 仅可作为其他宿主的桥接.");
     }
   }
 }
@@ -1030,9 +1030,9 @@ function checkDeepResearchSkill(cwd, report, corpus) {
       report,
       "p1",
       "missing-deep-research-skill",
-      "Deep research skill is not installed in host or project skill roots.",
+      "Deep research skill 未安装在宿主或项目 skill 根目录.",
       "Capability Skill Inventory",
-      "Put deep-research at the top of optional install recommendations; use it for file search plus file-informed web research, then record install target and evidence in .plan/SPEC.md."
+      "将 deep-research 放在可选安装推荐的首位；用于文件检索加文件知情的联网搜索，然后在 .plan/SPEC.md 中记录安装目标和证据."
     );
     return;
   }
@@ -1042,16 +1042,16 @@ function checkDeepResearchSkill(cwd, report, corpus) {
       report,
       "p2",
       "deep-research-not-recorded",
-      "Deep research skill is installed but the project facts do not record how it will be used or deferred.",
+      "Deep research skill 已安装但项目事实未记录如何使用或延期.",
       ".plan/SPEC.md",
-      "Record deep-research host/project status, location, purpose, approval state, and evidence in Capability Skill Inventory."
+      "在 Capability Skill Inventory 中记录 deep-research 宿主/项目状态、位置、用途、审批状态和证据."
     );
   }
 }
 
 function checkEntryAndCharterConsistency(cwd, report, corpus) {
   if (!exists(cwd, "README.md")) {
-    addIssue(report, "p2", "missing-root-readme", "Root README.md is missing.", "README.md", "Add a root README that points to the active project facts and workflow entry.");
+    addIssue(report, "p2", "missing-root-readme", "缺少根目录 README.md.", "README.md", "添加指向活跃项目事实和 workflow 入口的根目录 README.");
   }
 
   const hasAgents = exists(cwd, "AGENTS.md");
@@ -1062,13 +1062,13 @@ function checkEntryAndCharterConsistency(cwd, report, corpus) {
     const linked = includesAny(agents, ["CLAUDE.md", ".plan", "PRD.md", "SPEC.md", "CHECKLIST.md"]) &&
       includesAny(claude, ["AGENTS.md", ".plan", "PRD.md", "SPEC.md", "CHECKLIST.md"]);
     if (!linked) {
-      addIssue(report, "p1", "unlinked-agent-charters", "AGENTS.md and CLAUDE.md both exist but do not share a clear dependency or fact-source bridge.", "AGENTS.md / CLAUDE.md", "Keep the active host entry primary. The inactive entry may exist only as a bridge to the active entry and .plan/.kit/.workflow/.test anchors.");
+      addIssue(report, "p1", "unlinked-agent-charters", "AGENTS.md 和 CLAUDE.md 同时存在但未共享清晰的依赖或事实源桥接.", "AGENTS.md / CLAUDE.md", "保持活跃宿主入口为主. 非活跃入口仅可作为活跃入口和 .plan/.kit/.workflow/.test 锚点的桥接.");
     }
   }
 
   const hasRootCharters = hasAgents || hasClaude || exists(cwd, "README.md") || exists(cwd, ".workflow/README.md");
   if (hasRootCharters && !includesAny(corpus, ["Charter Consistency", "章程一致性", "入口一致性", "AGENTS.md", "CLAUDE.md"])) {
-    addIssue(report, "p1", "missing-charter-consistency-check", "Project entry files exist but SPEC does not record charter/plan consistency.", ".plan/SPEC.md", "Record whether README, active host entry, .workflow/README.md, .test/README.md, and .plan agree on goal, scope, and workflow.");
+    addIssue(report, "p1", "missing-charter-consistency-check", "项目入口文件存在但 SPEC 未记录章程/计划一致性.", ".plan/SPEC.md", "记录 README、活跃宿主入口、.workflow/README.md、.test/README.md 和 .plan 是否在目标、范围和工作流上达成一致.");
   }
 }
 
@@ -1080,26 +1080,26 @@ function checkWorkflowOption(cwd, report) {
   const spec = readText(cwd, ".plan/SPEC.md");
 
   if (hasDocsWorkflows) {
-    addIssue(report, "p1", "legacy-docs-workflows", "docs/workflows/ exists, but KIT now uses .workflow/ as the single workflow directory.", "docs/workflows", "Move or bridge workflow documents into .workflow/ and record legacy status in .plan/SPEC.md.");
+    addIssue(report, "p1", "legacy-docs-workflows", "docs/workflows/ 存在，但 KIT 现在使用 .workflow/ 作为唯一 workflow 目录.", "docs/workflows", "将 workflow 文档移入或桥接到 .workflow/ 并在 .plan/SPEC.md 中记录遗留状态.");
   }
   if (hasLegacyWorkflows) {
-    addIssue(report, "p1", "legacy-workflows-dir", ".workflows/ exists, but KIT now uses .workflow/ as the single workflow directory.", ".workflows", "Move or bridge legacy workflow runner/docs into .workflow/ and record runner compatibility in .plan/SPEC.md.");
+    addIssue(report, "p1", "legacy-workflows-dir", ".workflows/ 存在，但 KIT 现在使用 .workflow/ 作为唯一 workflow 目录.", ".workflows", "将遗留 workflow runner/文档移入或桥接到 .workflow/ 并在 .plan/SPEC.md 中记录 runner 兼容性.");
   }
 
   if (!hasWorkflowDir) {
-    addIssue(report, "p1", "missing-workflow-entry", "Missing .workflow/ KIT workflow entry.", ".workflow/README.md", "Create .workflow/ as the single workflow entry, or record why this project is not workflow-managed.");
+    addIssue(report, "p1", "missing-workflow-entry", "缺少 .workflow/ KIT workflow 入口.", ".workflow/README.md", "创建 .workflow/ 作为唯一 workflow 入口，或记录为何该项目不由 workflow 管理.");
     return;
   }
 
   if (!exists(cwd, ".workflow/README.md")) {
-    addIssue(report, "p1", "missing-workflow-readme", ".workflow exists but .workflow/README.md is missing.", ".workflow/README.md", "Add a workflow README as the entrypoint.");
+    addIssue(report, "p1", "missing-workflow-readme", ".workflow 存在但缺少 .workflow/README.md.", ".workflow/README.md", "添加 workflow README 作为入口.");
   }
   if (!includesAny(spec, [".workflow/README.md", "Active workflow entry", "active workflow entry", "当前 workflow 入口"])) {
-    addIssue(report, "p1", "workflow-entry-not-recorded", ".workflow/ exists but SPEC does not record it as the workflow entry.", ".plan/SPEC.md", "Record Active workflow entry: .workflow/README.md.");
+    addIssue(report, "p1", "workflow-entry-not-recorded", ".workflow/ 存在但 SPEC 未将其记录为 workflow 入口.", ".plan/SPEC.md", "记录活跃 workflow 入口: .workflow/README.md.");
   }
   for (const rel of [".workflow/codex.md", ".workflow/workbuddy.md", ".workflow/trae-solo.md"]) {
     if (!exists(cwd, rel)) {
-      addIssue(report, "p2", "missing-workflow-preset", `Optional workflow preset missing: ${rel}`, rel, "Add the preset if this host/workflow needs a stable read path.");
+      addIssue(report, "p2", "missing-workflow-preset", `可选 workflow 预设缺失: ${rel}`, rel, "如果该宿主/workflow 需要稳定的读取路径，请添加预设.");
     }
   }
 }
@@ -1135,7 +1135,7 @@ function checkCapabilitySkillInventory(cwd, report, corpus) {
   if (!impliedRoutedCapability) return;
 
   if (!includesAny(corpus, ["Capability Skill Inventory", "业务 Skill 盘点", "Host status", "Project status", "Install target"])) {
-    addIssue(report, "p1", "missing-capability-skill-inventory", "Routed capabilities are implied but host/project business skill inventory is not documented.", ".plan/SPEC.md", "Inspect host and project skills/workflows/runners; record need, host status, project status, recommended skill/tool, install target, approval, and evidence.");
+    addIssue(report, "p1", "missing-capability-skill-inventory", "已暗示路由能力，但未记录宿主/项目业务 skill 盘点.", ".plan/SPEC.md", "检查宿主和项目 skills/workflows/runners；记录需求、宿主状态、项目状态、推荐 skill/工具、安装目标、审批和证据.");
   }
 }
 
@@ -1148,9 +1148,9 @@ function checkInvocationStatusBrief(cwd, report, corpus) {
       report,
       "p1",
       "missing-invocation-status-brief",
-      "Initialized KIT project lacks the every-invocation status brief contract.",
+      "已初始化的 KIT 项目缺少每次调用状态提醒契约.",
       ".plan/SPEC.md / .plan/CHECKLIST.md",
-      "Record current status, endpoint, direction drift, next safe action, and user decision requirement for resumed KIT calls."
+      "记录当前状态、终点、方向漂移、下一步安全操作和恢复 KIT 调用时的用户决策需求."
     );
     return;
   }
@@ -1160,9 +1160,9 @@ function checkInvocationStatusBrief(cwd, report, corpus) {
       report,
       "p1",
       "missing-project-endpoint",
-      "Status brief exists but does not define the project endpoint or stop gate.",
+      "状态提醒存在但未定义项目终点或停止门.",
       ".plan/PRD.md / .plan/SPEC.md",
-      "Add Definition of Done plus Stop Gate so resumed work knows what completion means."
+      "添加 Definition of Done 和 Stop Gate，以便恢复工作时知道完成意味着什么."
     );
   }
 
@@ -1171,9 +1171,9 @@ function checkInvocationStatusBrief(cwd, report, corpus) {
       report,
       "p2",
       "missing-question-bank-status-reference",
-      "Status questions are not tied to the compact question bank.",
+      "状态问题未关联到精简问题库.",
       ".plan/SPEC.md",
-      "Reference knowledge/question-bank.json SB* IDs instead of repeating long fixed questions."
+      "引用 knowledge/question-bank.json SB* ID 而非重复冗长的固定问题."
     );
   }
 }
@@ -1187,9 +1187,9 @@ function checkArchiveInteractionGate(cwd, report, corpus) {
       report,
       "p1",
       "missing-archive-interaction-gate",
-      "Archive/cleanup scope lacks the pre-archive interaction gate.",
+      "归档/清理范围缺少归档前交互门.",
       ".plan/SPEC.md / .plan/CHECKLIST.md",
-      "Before archiving or moving process files, record when to ask the user and when aligned docs/data allow proceeding without ceremony."
+      "在归档或移动流程文件前，记录何时询问用户以及何时对齐的文档/数据允许无需仪式直接继续."
     );
     return;
   }
@@ -1199,9 +1199,9 @@ function checkArchiveInteractionGate(cwd, report, corpus) {
       report,
       "p1",
       "missing-archive-alignment-sources",
-      "Archive gate does not list the fact sources that must align before silent cleanup.",
+      "归档门未列出静默清理前必须对齐的事实源.",
       ".plan/SPEC.md",
-      "Require PRD/SPEC/CHECKLIST/.kit/.workflow/.test/entry/live files alignment before archive movement without user interaction."
+      "要求 PRD/SPEC/CHECKLIST/.kit/.workflow/.test/entry/live 文件对齐后才能无需用户交互进行归档移动."
     );
   }
 
@@ -1210,9 +1210,9 @@ function checkArchiveInteractionGate(cwd, report, corpus) {
       report,
       "p2",
       "missing-archive-no-question-rule",
-      "Archive gate does not define when no user question is needed.",
+      "归档门未定义何时不需要提问用户.",
       ".plan/SPEC.md",
-      "State that no question is needed only when validate has no relevant P0/P1 and docs/data/live files agree."
+      "说明仅当 validate 无相关 P0/P1 且文档/数据/活跃文件一致时才不需要提问."
     );
   }
 }
@@ -1236,9 +1236,9 @@ function checkRequirementObjectClassification(cwd, report, corpus) {
       report,
       "p1",
       "missing-development-object-classification",
-      "Project facts do not classify what the user is building.",
+      "项目事实未分类用户在构建什么.",
       ".plan/PRD.md / .plan/SPEC.md",
-      "Classify the primary object before framework selection: skill, stable workflow, CLI harness, frontend/backend app, OMC orchestration, OpenCLI automation, SDK integration, pure MD framework, or design prototype."
+      "在框架选择前分类主对象: skill, stable workflow, CLI harness, frontend/backend app, OMC orchestration, OpenCLI automation, SDK integration, pure MD framework, 或 design prototype."
     );
     return;
   }
@@ -1248,9 +1248,9 @@ function checkRequirementObjectClassification(cwd, report, corpus) {
       report,
       "p2",
       "missing-framework-routing-decision",
-      "Development object is implied but framework routing decision is not recorded.",
+      "已暗示开发对象但未记录框架路由决策.",
       ".plan/SPEC.md",
-      "Record why the project should use KIT only, OpenSpec, Super Dev, CLI-Anything, OMC, OpenCLI, SDK integration, or a stable workflow."
+      "记录项目为何应仅使用 KIT, OpenSpec, Super Dev, CLI-Anything, OMC, OpenCLI, SDK integration, 或 stable workflow."
     );
   }
 
@@ -1259,9 +1259,9 @@ function checkRequirementObjectClassification(cwd, report, corpus) {
       report,
       "p2",
       "frontend-backend-framework-not-considered",
-      "Frontend/backend scope exists but OpenSpec/Super Dev were not considered.",
+      "存在前端/后端范围但未考虑 OpenSpec/Super Dev.",
       ".plan/SPEC.md",
-      "For frontend/backend stack selection, consider OpenSpec for spec-driven change management and Super Dev for governed delivery."
+      "对于前端/后端技术栈选择，考虑 OpenSpec 用于 spec-driven 变更管理，Super Dev 用于受控交付."
     );
   }
 }
@@ -1292,10 +1292,10 @@ function checkBrowserAndImageRoutes(cwd, report, corpus) {
   ]);
   if (hasBrowserScope && hasLoginStateScope) {
     if (!includesAny(corpus, ["OpenCLI", "opencli", "project-standard", "项目标准", "绑定浏览器", "bound:"])) {
-      addIssue(report, "p1", "missing-login-browser-route", "Browser work mentions login/session state but no logged-in browser technical route is documented.", ".plan/SPEC.md", "Record project-standard tool or OpenCLI route, auth/session material policy, evidence path, and fallback.");
+      addIssue(report, "p1", "missing-login-browser-route", "浏览器工作涉及登录/会话状态但未记录已登录浏览器技术路径.", ".plan/SPEC.md", "记录项目标准工具或 OpenCLI 路径、认证/会话材料策略、证据路径和回退方案.");
     }
     if (includesAny(corpus, ["Playwright", "playwright"]) && !includesAny(corpus, ["OpenCLI", "opencli", "项目标准", "auth-state", "storageState"])) {
-      addIssue(report, "p1", "playwright-login-state-risk", "Playwright appears near logged-in browser work without an auth-state policy or OpenCLI/project-standard boundary.", ".plan/SPEC.md", "Use Playwright mainly for E2E or document safe auth-state handling; use OpenCLI/project-standard runner for logged-in browser evidence.");
+      addIssue(report, "p1", "playwright-login-state-risk", "Playwright 出现在已登录浏览器工作附近，但缺少 auth-state 策略或 OpenCLI/项目标准边界.", ".plan/SPEC.md", "Playwright 主要用于 E2E 或记录安全的 auth-state 处理；使用 OpenCLI/项目标准 runner 获取已登录浏览器证据.");
     }
   }
 
@@ -1316,10 +1316,10 @@ function checkBrowserAndImageRoutes(cwd, report, corpus) {
   ]);
   if (hasImageGenerationScope) {
     if (!includesAny(corpus, ["生图点", "image point", "image-generation point", "资产类型", "尺寸/数量", "尺寸数量"])) {
-      addIssue(report, "p1", "missing-image-generation-points", "Image generation is in scope but concrete generation points are not documented.", ".plan/PRD.md", "List screens/scenes/assets/covers/characters/backgrounds/thumbnails that need generated images and their product purpose.");
+      addIssue(report, "p1", "missing-image-generation-points", "图片生成在范围内但未记录具体生成点.", ".plan/PRD.md", "列出需要生成图片的屏幕/场景/资产/封面/角色/背景/缩略图及其产品用途.");
     }
     if (!includesAny(corpus, ["Codex image", "imagegen", "Seedream", "DALL", "provider", "提供方", "生成工具", "推荐工具"])) {
-      addIssue(report, "p1", "missing-image-generation-method", "Image generation is in scope but provider/tool choice is not documented.", ".plan/SPEC.md", "Record provider/tool, prompt ownership, dimensions, storage path, approval gate, and fallback rule.");
+      addIssue(report, "p1", "missing-image-generation-method", "图片生成在范围内但未记录提供方/工具选择.", ".plan/SPEC.md", "记录提供方/工具、提示词归属、尺寸、存储路径、审批门和回退规则.");
     }
   }
 }
@@ -1327,13 +1327,13 @@ function checkBrowserAndImageRoutes(cwd, report, corpus) {
 function checkFrontend(cwd, report) {
   const corpus = readCorpus(cwd);
   if (!includesAny(corpus, [".test/ai/evidence", ".test/user/evidence", "screenshot", "截图", "visual"])) {
-    addIssue(report, "p0", "missing-visual-evidence", "Frontend/UI profile lacks visual evidence path.", ".plan/SPEC.md", "Record AI screenshot evidence under .test/ai/evidence/ and user evidence under .test/user/evidence/.");
+    addIssue(report, "p0", "missing-visual-evidence", "Frontend/UI profile 缺少视觉证据路径.", ".plan/SPEC.md", "在 .test/ai/evidence/ 记录 AI 截图证据，在 .test/user/evidence/ 记录用户证据.");
   }
   if (!includesAny(corpus, ["OpenCLI", "Playwright", "browser", "浏览器", "project-standard"])) {
-    addIssue(report, "p1", "missing-browser-tool", "Browser/evidence tool is not documented.", ".plan/SPEC.md", "Record the project-standard browser evidence tool and fallback.");
+    addIssue(report, "p1", "missing-browser-tool", "未记录浏览器/证据工具.", ".plan/SPEC.md", "记录项目标准浏览器证据工具和回退方案.");
   }
   if (!exists(cwd, "docs/ui-ux")) {
-    addIssue(report, "p2", "missing-uiux-docs", "Missing docs/ui-ux/ for stable UI/UX source material.", "docs/ui-ux", "Create docs/ui-ux/ when UI/UX facts exist.");
+    addIssue(report, "p2", "missing-uiux-docs", "缺少 docs/ui-ux/ 用于稳定的 UI/UX 源材料.", "docs/ui-ux", "当 UI/UX 事实存在时创建 docs/ui-ux/.");
   }
 }
 
@@ -1343,40 +1343,40 @@ function checkLongContentPublishing(cwd, report) {
   report.evidence.workflow_entries = workflowEntries;
 
   if (!includesAny(corpus, ["fanqie-publish", "publish confirmation", "真实发布", "confirm-live", "外发确认", "写入确认", "提交确认", "live delivery", "CONFIRM_REQUIRED", "live delivery: 不适用", "外发/写入/提交/发布: 不适用"])) {
-    addIssue(report, "p0", "missing-live-delivery-gate", "Live delivery/write/submit/publish confirmation gate is missing.", ".plan/SPEC.md", "Record a human gate for live delivery, or explicitly mark external write/submit/publish as not applicable.");
+    addIssue(report, "p0", "missing-live-delivery-gate", "缺少实时交付/写入/提交/发布确认门.", ".plan/SPEC.md", "记录实时交付的人工门，或明确标记外部写入/提交/发布为不适用.");
   }
   if (!includesAny(corpus, ["dry-run", "dry run", "--live", "confirm-live", "live flags"])) {
-    addIssue(report, "p0", "missing-dry-run-live-isolation", "Dry-run/live isolation is missing.", ".plan/SPEC.md", "Document dry-run commands and explicit live flags.");
+    addIssue(report, "p0", "missing-dry-run-live-isolation", "缺少试运行/实时隔离.", ".plan/SPEC.md", "记录试运行命令和显式实时标志.");
   }
   if (includesAny(corpus, ["ANTHROPIC_AUTH_TOKEN=", "OPENAI_API_KEY=", "cookie=", "Cookie:", "sessionid="])) {
-    addIssue(report, "p0", "possible-secret-material", "Possible account/token/cookie material appears in project text.", "", "Move secrets to local ignored config and sanitize committed docs.");
+    addIssue(report, "p0", "possible-secret-material", "项目文本中可能出现账号/token/cookie 材料.", "", "将密钥移至本地忽略配置并清理已提交的文档.");
   }
   if (!includesAny(corpus, ["data/runs", "audit.jsonl", "state_path", "状态", "resume"])) {
-    addIssue(report, "p0", "missing-run-state", "Resumable workflow state or audit log is missing.", ".plan/SPEC.md", "Record state file and audit log path.");
+    addIssue(report, "p0", "missing-run-state", "缺少可恢复工作流状态或审计日志.", ".plan/SPEC.md", "记录状态文件和审计日志路径.");
   }
   if (!includesAny(corpus, ["AI粗制滥造", "quality review", "质量", "template stitching", "empty/water", "阻断"])) {
-    addIssue(report, "p0", "missing-content-quality-blocker", "Content/workflow quality blocker is missing.", ".plan/SPEC.md", "Record quality blockers before live delivery or completion confirmation.");
+    addIssue(report, "p0", "missing-content-quality-blocker", "缺少内容/工作流质量阻断器.", ".plan/SPEC.md", "在实时交付或完成确认前记录质量阻断器.");
   }
   if (!includesAny(corpus, [".test/ai/evidence", ".test/ai/reports", ".test/user/evidence", ".test/user/feedback", "evidence/log", "publish evidence", "delivery evidence", "run evidence", "产物证据", "运行证据", "证据"])) {
-    addIssue(report, "p0", "missing-delivery-evidence", "Delivery/run evidence path is missing.", ".plan/SPEC.md", "Record AI evidence under .test/ai/ and user-facing evidence under .test/user/.");
+    addIssue(report, "p0", "missing-delivery-evidence", "缺少交付/运行证据路径.", ".plan/SPEC.md", "在 .test/ai/ 记录 AI 证据，在 .test/user/ 记录面向用户的证据.");
   }
 
   const p1Checks = [
-    ["node graph", ["Node Graph", "node graph", "->", "节点"], "missing-node-graph"],
-    ["artifact root", ["artifacts/", "artifact_root", "output_root", "产物"], "missing-artifact-root"],
-    ["human gates", ["Human Gates", "human gate", "CONFIRM_REQUIRED", "人工确认"], "missing-human-gates"],
-    ["executor ownership", ["executor", "执行器", "Claude", "OpenCode", "OpenAI SDK", "Node"], "missing-executor-ownership"],
-    ["chunk policy", ["chunk", "分片", "章节", "manuscript"], "missing-chunk-policy"],
-    ["review matrix", ["review matrix", "评审", "reviewer", "parallel-review"], "missing-review-matrix"],
-    ["format/encoding gate", ["UTF-8", "encoding", "乱码", "format", "格式"], "missing-format-encoding-gate"]
+    ["节点图", ["Node Graph", "node graph", "->", "节点"], "missing-node-graph"],
+    ["产物根目录", ["artifacts/", "artifact_root", "output_root", "产物"], "missing-artifact-root"],
+    ["人工门", ["Human Gates", "human gate", "CONFIRM_REQUIRED", "人工确认"], "missing-human-gates"],
+    ["执行器归属", ["executor", "执行器", "Claude", "OpenCode", "OpenAI SDK", "Node"], "missing-executor-ownership"],
+    ["分片策略", ["chunk", "分片", "章节", "manuscript"], "missing-chunk-policy"],
+    ["评审矩阵", ["review matrix", "评审", "reviewer", "parallel-review"], "missing-review-matrix"],
+    ["格式/编码门", ["UTF-8", "encoding", "乱码", "format", "格式"], "missing-format-encoding-gate"]
   ];
   for (const [label, terms, code] of p1Checks) {
     if (!includesAny(corpus, terms)) {
-      addIssue(report, "p1", code, `Missing ${label}.`, ".plan/SPEC.md", `Record ${label} for long-content workflow.`);
+      addIssue(report, "p1", code, `缺少 ${label}.`, ".plan/SPEC.md", `为长内容工作流记录 ${label}.`);
     }
   }
   if (!includesAny(corpus, ["DEFERRED", "quota", "额度", "创建作品数量超出每日上限"])) {
-    addIssue(report, "p1", "missing-quota-deferred", "Quota/deferred behavior is not documented.", ".plan/SPEC.md", "Record platform quota and DEFERRED handling.");
+    addIssue(report, "p1", "missing-quota-deferred", "未记录配额/延期行为.", ".plan/SPEC.md", "记录平台配额和 DEFERRED 处理.");
   }
 }
 
@@ -1385,11 +1385,11 @@ function checkArchiveCleanup(cwd, report) {
     ? fs.readdirSync(cwd).filter((name) => name.endsWith(".md") && !["README.md", "AGENTS.md", "CLAUDE.md"].includes(name))
     : [];
   if (rootMarkdown.length > 0) {
-    addIssue(report, "p1", "unclassified-root-markdown", `Root Markdown candidates need classification: ${rootMarkdown.join(", ")}`, ".", "Classify as keep, archive, docs, or evidence after reference checks.");
+    addIssue(report, "p1", "unclassified-root-markdown", `根目录 Markdown 候选需要分类: ${rootMarkdown.join(", ")}`, ".", "参考检查后分类为保留、归档、文档或证据.");
   }
   for (const rel of [".super-dev", ".superpowers", ".agents", ".claude", ".codex", "output"]) {
     if (exists(cwd, rel)) {
-      addIssue(report, "p2", "process-dir-review", `Process/tooling directory needs current-state review: ${rel}`, rel, "Inspect entrypoint and references before archiving anything.");
+      addIssue(report, "p2", "process-dir-review", `流程/工具目录需要当前状态审查: ${rel}`, rel, "归档任何内容前检查入口点和引用.");
     }
   }
 }
@@ -1413,9 +1413,9 @@ function checkRuntimeIndexSync(cwd, report) {
         report,
         "p1",
         "runtime-index-version-mismatch",
-        `.kit/ version mismatch: ${versions.map((v) => `${v.file}=${v.ver}`).join(", ")}.`,
+        `.kit/ 版本不一致: ${versions.map((v) => `${v.file}=${v.ver}`).join(", ")}.`,
         ".kit/",
-        "Align .kit/version.json, .kit/config.json, and .kit/case-runtime-index.json to the same project_version before archiving."
+        "归档前将 .kit/version.json, .kit/config.json 和 .kit/case-runtime-index.json 对齐到相同的 project_version."
       );
     }
   }
@@ -1429,9 +1429,9 @@ function checkRuntimeIndexSync(cwd, report) {
         report,
         "p1",
         "runtime-index-stage-mismatch",
-        `.kit/case-runtime-index.json stage (${indexStage}) differs from .kit/config.json stage (${configStage}).`,
+        `.kit/case-runtime-index.json 阶段 (${indexStage}) 与 .kit/config.json 阶段 (${configStage}) 不一致.`,
         ".kit/case-runtime-index.json",
-        "Synchronize stage markers across .kit/ files to prevent cross-session state pollution."
+        "同步 .kit/ 文件中的阶段标记以防止跨会话状态污染."
       );
     }
   }
@@ -1448,9 +1448,9 @@ function checkRuntimeIndexSync(cwd, report) {
         report,
         "p1",
         "plan-kit-version-drift",
-        `.plan/ version marker (v${planVer}) differs from .kit/ version (${kitVer}).`,
+        `.plan/ 版本标记 (v${planVer}) 与 .kit/ 版本 (${kitVer}) 不一致.`,
         ".plan/PRD.md / .kit/version.json",
-        "Keep .plan/ and .kit/ version markers in sync to avoid runtime index pollution."
+        "保持 .plan/ 和 .kit/ 版本标记同步以避免运行时索引污染."
       );
     }
   }
@@ -1470,9 +1470,9 @@ function checkSandboxArchivePaths(cwd, report) {
       report,
       "p1",
       "sandbox-candidates-in-plan-dir",
-      `Sandbox/experiment candidate files found in .plan/: ${candidates.join(", ")}.`,
+      `.plan/ 中发现沙盒/实验候选文件: ${candidates.join(", ")}.`,
       ".plan/",
-      "Move sandbox experiment candidates to .test/ai/sandboxes/<sandbox>/_archive/. Keep .plan/ for active PRD/SPEC/CHECKLIST only."
+      "将沙盒实验候选移至 .test/ai/sandboxes/<sandbox>/_archive/. .plan/ 仅用于活跃的 PRD/SPEC/CHECKLIST."
     );
   }
 
@@ -1487,9 +1487,9 @@ function checkSandboxArchivePaths(cwd, report) {
           report,
           "p2",
           "missing-sandbox-archive-dir",
-          `Sandbox ${sandbox} lacks _archive/ directory.`,
+          `沙盒 ${sandbox} 缺少 _archive/ 目录.`,
           `.test/ai/sandboxes/${sandbox}/`,
-          "Create _archive/ under each sandbox to store historical plan candidates and evidence."
+          "在每个沙盒下创建 _archive/ 以存储历史计划候选和证据."
         );
       }
     }
@@ -1516,33 +1516,33 @@ function checkSkillPackage(cwd, report) {
   ];
   for (const rel of requiredPaths) {
     if (!exists(cwd, rel)) {
-      addIssue(report, "p0", "missing-skill-package-file", `Missing package file or directory: ${rel}`, rel, "Restore it before publishing the skill package.");
+      addIssue(report, "p0", "missing-skill-package-file", `缺少包文件或目录: ${rel}`, rel, "发布 skill 包前恢复它.");
     }
   }
 
   const pkg = parseJsonFile(cwd, "package.json");
   if (!pkg) {
-    addIssue(report, "p0", "invalid-package-json", "package.json is missing or invalid.", "package.json", "Fix package metadata before publishing.");
+    addIssue(report, "p0", "invalid-package-json", "package.json 缺失或无效.", "package.json", "发布前修复包元数据.");
   } else {
     if (pkg.license !== "MIT") {
-      addIssue(report, "p1", "license-not-mit", "package.json license is not MIT.", "package.json", "Set license to MIT and keep LICENSE aligned.");
+      addIssue(report, "p1", "license-not-mit", "package.json 许可证不是 MIT.", "package.json", "设置许可证为 MIT 并保持 LICENSE 一致.");
     }
     if (!pkg.bin?.["spec-loop-kit"]) {
-      addIssue(report, "p1", "missing-helper-bin", "package.json does not expose spec-loop-kit bin.", "package.json", "Add bin.spec-loop-kit pointing to ./bin/spec-loop-kit.mjs.");
+      addIssue(report, "p1", "missing-helper-bin", "package.json 未暴露 spec-loop-kit bin.", "package.json", "添加 bin.spec-loop-kit 指向 ./bin/spec-loop-kit.mjs.");
     }
     for (const scriptName of ["check", "check:contract", "check:self-audit", "check:pack"]) {
       if (!pkg.scripts?.[scriptName]) {
-        addIssue(report, "p1", "missing-package-script", `package.json missing script: ${scriptName}`, "package.json", "Add syntax, self-audit, and package dry-run scripts.");
+        addIssue(report, "p1", "missing-package-script", `package.json 缺少脚本: ${scriptName}`, "package.json", "添加语法检查、自检和包干运行脚本.");
       }
     }
     const files = Array.isArray(pkg.files) ? pkg.files : [];
     for (const rel of ["SKILL.md", "README.md", "AGENTS.md", "CLAUDE.md", "LICENSE", "agents", "bin", "scripts", "templates", "knowledge", ".kit", ".test"]) {
       if (!files.includes(rel)) {
-        addIssue(report, "p1", "package-files-missing-entry", `package.json files does not include ${rel}.`, "package.json", "Include all files needed for a portable skill package.");
+        addIssue(report, "p1", "package-files-missing-entry", `package.json files 未包含 ${rel}.`, "package.json", "包含可移植 skill 包所需的所有文件.");
       }
     }
     if (!pkg.repository || !pkg.homepage || !pkg.bugs) {
-      addIssue(report, "p2", "missing-package-repo-metadata", "package.json lacks repository/homepage/bugs metadata.", "package.json", "Add GitHub metadata for public distribution.");
+      addIssue(report, "p2", "missing-package-repo-metadata", "package.json 缺少 repository/homepage/bugs 元数据.", "package.json", "添加 GitHub 元数据用于公开发布.");
     }
   }
 
@@ -1557,7 +1557,7 @@ function checkSkillPackage(cwd, report) {
   ];
   for (const rel of packageTestPaths) {
     if (!exists(cwd, rel)) {
-      addIssue(report, "p1", "missing-skill-self-audit-path", `Missing self-audit/package testing path: ${rel}`, rel, "Keep skill package proof under .test/ and version state under .kit/.");
+      addIssue(report, "p1", "missing-skill-self-audit-path", `缺少自检/包测试路径: ${rel}`, rel, "在 .test/ 下保留 skill 包证明，在 .kit/ 下保留版本状态.");
     }
   }
 
@@ -1568,18 +1568,18 @@ function checkSkillPackage(cwd, report) {
   const skill = readText(cwd, "SKILL.md");
   const combined = `${readme}\n${skill}`;
   if (!includesAny(combined, ["AI 模拟用户", "AI-simulated users"])) {
-    addIssue(report, "p1", "missing-ai-user-test-boundary", "Docs do not define AI-simulated user vs real user testing.", "README.md / SKILL.md", "State that AI-simulated users go under .test/ai/, real humans under .test/user/.");
+    addIssue(report, "p1", "missing-ai-user-test-boundary", "文档未定义 AI 模拟用户与真实用户测试的边界.", "README.md / SKILL.md", "说明 AI 模拟用户放在 .test/ai/，真实用户放在 .test/user/.");
   }
   if (!includesAny(combined, ["output/", "outputs/"])) {
-    addIssue(report, "p1", "missing-output-dir-policy", "Docs do not forbid loose output/outputs directories.", "README.md / SKILL.md", "Record output/outputs classification into .test/ai, .test/user, or .plan/archive.");
+    addIssue(report, "p1", "missing-output-dir-policy", "文档未禁止松散的 output/outputs 目录.", "README.md / SKILL.md", "记录 output/outputs 分类到 .test/ai, .test/user, 或 .plan/archive.");
   }
   if (!includesAny(combined, ["Model / Agent Risk Ledger", "模型/Agent 风险账本", "模型开发"])) {
-    addIssue(report, "p2", "missing-model-agent-docs", "Docs do not explain model/agent development risk tracking.", "README.md / SKILL.md", "Document model version, cost/quota, context truncation, prompt drift, tool permissions, eval isolation, and evidence retention.");
+    addIssue(report, "p2", "missing-model-agent-docs", "文档未说明 model/agent 开发风险追踪.", "README.md / SKILL.md", "记录模型版本、成本/配额、上下文截断、提示词漂移、工具权限、评测隔离和证据保留.");
   }
 
   const skillLines = skill ? skill.split(/\r?\n/).length : 0;
   if (skillLines > 700) {
-    addIssue(report, "p2", "skill-doc-long", `SKILL.md is ${skillLines} lines; it may be heavy for host skill loading.`, "SKILL.md", "Later split reference material into knowledge/ while keeping the entrypoint lean.");
+    addIssue(report, "p2", "skill-doc-long", `SKILL.md 共 ${skillLines} 行；对宿主 skill 加载可能过重.`, "SKILL.md", "后续将参考材料拆分到 knowledge/，保持入口精简.");
   }
 
   // Critical fix S-6.3: skill-package self-audit must also run archive checks
@@ -2326,107 +2326,107 @@ try {
     process.exit(failCount > 0 ? 2 : 0);
   } else if (args.command === "run") {
     if (args.help) {
-      console.log("spec-loop-kit run — Execution layer helper for /kit-run");
+      console.log("spec-loop-kit run — /kit-run 的执行层助手");
       console.log("");
-      console.log("This command prints the run-mode reference and validates pre-code readiness.");
-      console.log("It does not execute code; it guides the AI through modes/run.md and quality/pre-code.md.");
+      console.log("此命令打印运行模式参考并验证编码前准备状态.");
+      console.log("它不执行代码；而是引导 AI 阅读 modes/run.md 和 quality/pre-code.md.");
       console.log("");
-      console.log("Pre-code gate:");
-      console.log("  1. Research the tech stack (check official docs, do not guess APIs).");
-      console.log("  2. Read project config (tsconfig, lint rules, .env).");
-      console.log("  3. Declare UI toolchain (lock icon library: Lucide/Heroicons/Tabler).");
-      console.log("  4. Confirm API contract and design tokens.");
-      console.log("  5. Establish page structure + verify build with zero errors.");
+      console.log("编码前门控:");
+      console.log("  1. 研究技术栈 (查阅官方文档，不要猜测 API).");
+      console.log("  2. 读取项目配置 (tsconfig, lint 规则, .env).");
+      console.log("  3. 声明 UI 工具链 (锁定图标库: Lucide/Heroicons/Tabler).");
+      console.log("  4. 确认 API 契约和设计令牌.");
+      console.log("  5. 建立页面结构 + 验证构建零错误.");
       console.log("");
-      console.log("File-write 4-item self-check:");
-      console.log("  [ ] Is 'use client' necessary?");
-      console.log("  [ ] Icons come from the declared icon library (not emoji).");
-      console.log("  [ ] Colors come from design tokens (not hard-coded hex).");
-      console.log("  [ ] Import paths are correct and API paths match architecture.");
+      console.log("文件写入 4 项自检:");
+      console.log("  [ ] 是否需要 'use client'?");
+      console.log("  [ ] 图标来自声明的图标库 (而非 emoji).");
+      console.log("  [ ] 颜色来自设计令牌 (而非硬编码 hex).");
+      console.log("  [ ] 导入路径正确且 API 路径与架构匹配.");
       console.log("");
-      console.log("Frontend-first flow:");
-      console.log("  1. Implement frontend + UI first (based on docs/ui-ux/).");
-      console.log("  2. Screenshot check (preview confirmation gate).");
-      console.log("  3. User confirms UI.");
-      console.log("  4. Then implement backend + integration.");
+      console.log("前端优先流程:");
+      console.log("  1. 先实现前端 + UI (基于 docs/ui-ux/).");
+      console.log("  2. 截图检查 (预览确认门).");
+      console.log("  3. 用户确认 UI.");
+      console.log("  4. 然后实现后端 + 集成.");
       console.log("");
-      console.log("Implementation closure 5-item check:");
-      console.log("  1. Build has zero errors.");
-      console.log("  2. Lint has zero errors.");
-      console.log("  3. No console red errors.");
-      console.log("  4. New code connects to real call chains.");
-      console.log("  5. New logs/alerts verify real path triggers.");
+      console.log("实现收尾 5 项检查:");
+      console.log("  1. 构建零错误.");
+      console.log("  2. Lint 零错误.");
+      console.log("  3. 控制台无红色错误.");
+      console.log("  4. 新代码连接到真实调用链.");
+      console.log("  5. 新日志/告警验证真实路径触发.");
       process.exit(0);
     }
     // Print reference and exit; actual execution is handled by the AI reading modes/run.md
-    console.log("Run mode reference loaded. The AI should read modes/run.md and quality/pre-code.md for full behavior.");
-    console.log("Use --help for a quick reference of the gates and checks.");
+    console.log("运行模式参考已加载. AI 应阅读 modes/run.md 和 quality/pre-code.md 获取完整行为.");
+    console.log("使用 --help 查看门控和检查的快速参考.");
     process.exit(0);
   } else if (args.command === "check") {
     if (args.help) {
-      console.log("spec-loop-kit check — Quality layer helper for /kit-check");
+      console.log("spec-loop-kit check — /kit-check 的质量层助手");
       console.log("");
-      console.log("This command prints the check-mode reference and runs a quick self-check.");
-      console.log("Full quality flywheel behavior is in modes/check.md and quality/ definitions.");
+      console.log("此命令打印检查模式参考并运行快速自检.");
+      console.log("完整质量飞轮行为在 modes/check.md 和 quality/ 定义中.");
       console.log("");
-      console.log("Quality flywheel:");
-      console.log("  Inspect -> Produce report -> [User confirms] -> Fix -> [User confirms] -> Regression check -> Archive");
+      console.log("质量飞轮:");
+      console.log("  检查 -> 生成报告 -> [用户确认] -> 修复 -> [用户确认] -> 回归检查 -> 归档");
       console.log("");
-      console.log("Divergent inspection (when user reports one issue, check all related):");
-      console.log("  User: 'Button position is wrong' -> Check all buttons, forms, mobile, z-index");
-      console.log("  User: 'Mock data found' -> Check all API calls, loading states, error handling, empty states");
+      console.log("发散检查 (当用户报告一个问题时，检查所有相关):");
+      console.log("  用户: '按钮位置不对' -> 检查所有按钮、表单、移动端、z-index");
+      console.log("  用户: '发现模拟数据' -> 检查所有 API 调用、加载状态、错误处理、空状态");
       console.log("");
-      console.log("Vibe Coding 18-item checklist (see knowledge/anti-patterns.md):");
-      console.log("  UI:  z-index wars, overflow, responsive, text truncation, loading/mock, empty state");
-      console.log("  Data: real API vs mock, CRUD backend, form persistence, refresh survival");
-      console.log("  Function: button behavior, route pages, form validation, link navigation");
+      console.log("Vibe Coding 18 项检查清单 (见 knowledge/anti-patterns.md):");
+      console.log("  UI:  z-index 冲突, 溢出, 响应式, 文本截断, 加载/模拟, 空状态");
+      console.log("  数据: 真实 API 对比模拟, CRUD 后端, 表单持久化, 刷新存活");
+      console.log("  功能: 按钮行为, 路由页面, 表单验证, 链接导航");
       console.log("");
-      console.log("Grading levels:");
-      console.log("  L1 Static analysis (auto): unused imports, type errors, build failures");
-      console.log("  L2 Build-time check (auto): console errors, API contract mismatch, mock residue");
-      console.log("  L3 Browser check (semi-auto): generate checklist -> user confirms -> run Playwright");
+      console.log("分级水平:");
+      console.log("  L1 静态分析 (自动): 未使用导入, 类型错误, 构建失败");
+      console.log("  L2 构建时检查 (自动): 控制台错误, API 契约不匹配, 模拟残留");
+      console.log("  L3 浏览器检查 (半自动): 生成清单 -> 用户确认 -> 运行 Playwright");
       console.log("");
-      console.log("Adaptive exit:");
-      console.log("  - 2 consecutive rounds with no new issues -> converged exit");
-      console.log("  - Severity downgrade (P0->P1->P2) -> gradual exit");
-      console.log("  - User says 'enough' -> immediate exit");
-      console.log("  - Max rounds: default 3, configurable");
+      console.log("自适应退出:");
+      console.log("  - 连续 2 轮无新问题 -> 收敛退出");
+      console.log("  - 严重级别降级 (P0->P1->P2) -> 渐进退出");
+      console.log("  - 用户说 '够了' -> 立即退出");
+      console.log("  - 最大轮数: 默认 3, 可配置");
       process.exit(0);
     }
-    console.log("Check mode reference loaded. The AI should read modes/check.md and quality/ for full behavior.");
-    console.log("Use --help for a quick reference of the flywheel and checklist.");
+    console.log("检查模式参考已加载. AI 应阅读 modes/check.md 和 quality/ 获取完整行为.");
+    console.log("使用 --help 查看飞轮和检查清单的快速参考.");
     process.exit(0);
   } else if (args.command === "loop") {
     if (args.help) {
-      console.log("spec-loop-kit loop — Autonomous cruise helper for /kit-loop");
+      console.log("spec-loop-kit loop — /kit-loop 的自动巡航助手");
       console.log("");
-      console.log("This command prints the loop-mode reference and validates loop configuration.");
-      console.log("Full autonomous cruise behavior is in modes/loop.md.");
+      console.log("此命令打印循环模式参考并验证循环配置.");
+      console.log("完整自动巡航行为在 modes/loop.md 中.");
       console.log("");
-      console.log("Loop workflow:");
-      console.log("  /kit-loop <duration> -> User confirms scope -> Start -> [Checkpoint every 4h] ->");
-      console.log("  Auto /kit-check diff -> Fix -> Continue -> [User can stop anytime] -> Final report");
+      console.log("循环工作流:");
+      console.log("  /kit-loop <duration> -> 用户确认范围 -> 开始 -> [每 4 小时检查点] ->");
+      console.log("  自动 /kit-check diff -> 修复 -> 继续 -> [用户可随时停止] -> 最终报告");
       console.log("");
-      console.log("Scope boundaries:");
-      console.log("  - Authorized fix range (files, directories, issue severity)");
-      console.log("  - Checkpoint frequency (default: every 4 hours)");
-      console.log("  - Notification method (console, file, optional external)");
-      console.log("  - Termination conditions (time, milestone, issue zero, user stop)");
+      console.log("范围边界:");
+      console.log("  - 授权修复范围 (文件, 目录, 问题严重级别)");
+      console.log("  - 检查点频率 (默认: 每 4 小时)");
+      console.log("  - 通知方式 (控制台, 文件, 可选外部)");
+      console.log("  - 终止条件 (时间, 里程碑, 问题清零, 用户停止)");
       console.log("");
-      console.log("Evidence trail:");
-      console.log("  - All fixes logged to .kit/loop-state.md");
-      console.log("  - Checkpoints produce reports under .test/ai/reports/");
-      console.log("  - Rollback plan recorded before risky changes");
+      console.log("证据追踪:");
+      console.log("  - 所有修复记录到 .kit/loop-state.md");
+      console.log("  - 检查点在 .test/ai/reports/ 下生成报告");
+      console.log("  - 风险变更前记录回滚计划");
       console.log("");
-      console.log("Safety rules:");
-      console.log("  - Never auto-fix outside authorized range");
-      console.log("  - Always report before fixing P0 issues");
-      console.log("  - User stop is immediate and honored");
-      console.log("  - Max 3 auto-retry per issue, then escalate to user");
+      console.log("安全规则:");
+      console.log("  - 绝不自动修复授权范围外的问题");
+      console.log("  - 修复 P0 问题前必须报告");
+      console.log("  - 用户停止是立即且受尊重的");
+      console.log("  - 每个问题最多 3 次自动重试，然后上报用户");
       process.exit(0);
     }
-    console.log("Loop mode reference loaded. The AI should read modes/loop.md for full behavior.");
-    console.log("Use --help for a quick reference of the cruise workflow and safety rules.");
+    console.log("循环模式参考已加载. AI 应阅读 modes/loop.md 获取完整行为.");
+    console.log("使用 --help 查看巡航工作流和安全规则的快速参考.");
     process.exit(0);
   } else if (args.command === "sync") {
     const cwd = path.resolve(args.cwd);
@@ -2438,27 +2438,27 @@ try {
       const claudeVer = claude.match(/Project version: `([^`]+)`/);
       const agentsVer = agents.match(/Project version: `([^`]+)`/);
       if (claudeVer && agentsVer && claudeVer[1] !== agentsVer[1]) {
-        issues.push(`Version mismatch: CLAUDE.md=${claudeVer[1]}, AGENTS.md=${agentsVer[1]}`);
+        issues.push(`版本不匹配: CLAUDE.md=${claudeVer[1]}, AGENTS.md=${agentsVer[1]}`);
       }
       const claudeHost = claude.match(/Host: `([^`]+)`/);
       const agentsHost = agents.match(/Host: `([^`]+)`/);
       if (claudeHost && agentsHost && claudeHost[1] !== agentsHost[1]) {
-        issues.push(`Host mismatch: CLAUDE.md=${claudeHost[1]}, AGENTS.md=${agentsHost[1]}`);
+        issues.push(`宿主不匹配: CLAUDE.md=${claudeHost[1]}, AGENTS.md=${agentsHost[1]}`);
       }
     }
     if (readme) {
       const readmeVer = readme.match(/(?:version|版本)[\s:=]+v?(\d+\.\d+\.\d+)/i);
       const pkg = parseJsonFile(cwd, "package.json");
       if (readmeVer && pkg?.version && readmeVer[1] !== pkg.version) {
-        issues.push(`README.md version (${readmeVer[1]}) differs from package.json (${pkg.version})`);
+        issues.push(`README.md 版本 (${readmeVer[1]}) 与 package.json (${pkg.version}) 不一致`);
       }
     }
     if (issues.length > 0) {
-      console.error("Sync issues found:");
+      console.error("发现同步问题:");
       for (const issue of issues) console.error(`  - ${issue}`);
       process.exit(1);
     } else {
-      console.log("Host entries and README are in sync.");
+      console.log("宿主入口和 README 已同步.");
       process.exit(0);
     }
   } else {
