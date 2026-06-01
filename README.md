@@ -44,7 +44,7 @@ KIT v2.0 提供八个命令，覆盖产品到开发的完整闭环：
 
 交付前最重要的是 `Delivery Contents Gate`：在 `/kit-test`、`/kit-pack`、归档或交接前，必须确认“交付内容物”。至少列出包含什么、不包含什么、证据在哪里、怎么运行/打开、已知风险是什么。用户未确认内容物时，不得声称可交付。
 
-商业项目还必须通过商业交付门：`quality/commercial-delivery.md`、`quality/four-role-review.md`、`knowledge/ui-commercial-2026.md` 和按需使用的 `knowledge/china-mainland-delivery.md`。重大交付要经过 Top PM、Top Code Engineer、Top Frontend Engineer、Backend Framework Engineer 四重评审，每项都必须 ≥95 分才算通过。
+商业项目还必须通过商业交付门：`quality/commercial-delivery.md`、`quality/four-role-review.md`、`quality/current-verdict-2026-06-01.md`、`knowledge/ui-commercial-2026.md` 和按需使用的 `knowledge/china-mainland-delivery.md`。重大交付要经过 Top PM、Top Code Engineer、Top Frontend Engineer、Backend Framework Engineer 四重评审，每项都必须 ≥95 分才算通过。
 
 知识库、RAG、智能体或自动化 workflow 必须记录自我督导策略：检索/eval 质量、来源新鲜度、工具调用 schema 校验、循环限制、成本/延迟预算、trace 脱敏、回归案例和失败回滚。
 
@@ -905,6 +905,7 @@ npm run check:pack
 - `product-prototype-knowledge.md`
 - `china-mainland-delivery.md`
 - `ui-commercial-2026.md`
+- `../quality/current-verdict-2026-06-01.md`
 - `question-bank.json`
 - `index.json`
 

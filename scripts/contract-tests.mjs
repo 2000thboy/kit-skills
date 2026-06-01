@@ -230,6 +230,7 @@ test("commercial, mainland, ui, and four-role review gates are documented", () =
   const requiredFiles = [
     "quality/commercial-delivery.md",
     "quality/four-role-review.md",
+    "quality/current-verdict-2026-06-01.md",
     "knowledge/china-mainland-delivery.md",
     "knowledge/ui-commercial-2026.md"
   ];
