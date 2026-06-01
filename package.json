@@ -7,7 +7,7 @@
     "spec-loop-kit": "./bin/spec-loop-kit.mjs"
   },
   "scripts": {
-    "check": "node --check bin/spec-loop-kit.mjs",
+    "check": "node --check bin/spec-loop-kit.mjs && node --check scripts/contract-tests.mjs",
     "check:contract": "node scripts/contract-tests.mjs",
     "check:self-audit": "node bin/spec-loop-kit.mjs audit --cwd . --profile skill-package --host codex --json",
     "check:pack": "npm pack --dry-run",

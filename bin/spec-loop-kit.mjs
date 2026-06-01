@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import fs from "node:fs";
 import path from "node:path";
+import crypto from "node:crypto";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
@@ -2419,6 +2420,22 @@ function hasDeliveryContentsGate(corpus) {
   return { ok: hasGate && hasIncluded && hasExcluded && hasRisk && hasEvidence, hasGate, hasIncluded, hasExcluded, hasRisk, hasEvidence };
 }
 
+function hasRequirementToRunHandoff(corpus) {
+  const hasSection = /Requirement-to-Run Handoff|需求到执行交接|执行交接/i.test(corpus);
+  const hasConfirmedRequirements = /confirmed requirements|已确认需求|需求确认|用户确认/i.test(corpus);
+  const hasPlan = /plan|计划|CHECKLIST|任务列表/i.test(corpus);
+  const hasDeliveryContents = /Delivery Contents Gate|交付内容物/i.test(corpus);
+  const hasNextCommand = /\/kit-run|\/kit-check|\/kit-test|\/kit-pack/i.test(corpus);
+  return {
+    ok: hasSection && hasConfirmedRequirements && hasPlan && hasDeliveryContents && hasNextCommand,
+    hasSection,
+    hasConfirmedRequirements,
+    hasPlan,
+    hasDeliveryContents,
+    hasNextCommand
+  };
+}
+
 function packageManagerCommand() {
   return process.platform === "win32" ? "npm.cmd" : "npm";
 }
@@ -2474,6 +2491,62 @@ function runNpmScriptIfPresent(cwd, scriptName, records) {
   return { present: true, record };
 }
 
+function parseFourRoleReview(cwd) {
+  const rel = ".test/ai/reports/four-role-review.md";
+  const text = readText(cwd, rel);
+  const roles = [
+    { key: "pm", label: "PM", patterns: [/Top PM/i, /\|\s*PM\s*\|/i] },
+    { key: "code", label: "Code", patterns: [/Top Code/i, /\|\s*Code\s*\|/i] },
+    { key: "frontend", label: "Frontend", patterns: [/Top Frontend/i, /\|\s*Frontend\s*\|/i] },
+    { key: "backend", label: "Backend", patterns: [/Backend Framework/i, /\|\s*Backend\s*\|/i] }
+  ];
+  const scores = {};
+  for (const role of roles) {
+    scores[role.key] = null;
+    for (const pattern of role.patterns) {
+      const line = text.split(/\r?\n/).find((item) => pattern.test(item));
+      if (!line) continue;
+      const match = line.match(/\|\s*[^|]+\|\s*(\d+(?:\.\d+)?)\s*\|/);
+      if (match) {
+        scores[role.key] = Number(match[1]);
+        break;
+      }
+    }
+  }
+  const missing = roles.filter((role) => scores[role.key] === null).map((role) => role.label);
+  const below95 = roles.filter((role) => scores[role.key] !== null && scores[role.key] < 95).map((role) => `${role.label}:${scores[role.key]}`);
+  return {
+    file: rel,
+    exists: exists(cwd, rel),
+    scores,
+    missing,
+    below95,
+    ok: exists(cwd, rel) && missing.length === 0 && below95.length === 0
+  };
+}
+
+function stateScreenshotGate(cwd) {
+  const evidenceDir = path.join(cwd, ".test", "ai", "evidence");
+  const names = fs.existsSync(evidenceDir) ? fs.readdirSync(evidenceDir) : [];
+  const desktopStates = names.filter((name) => /^state-.+\.png$/i.test(name));
+  const mobileStates = names.filter((name) => /^mobile-state-.+\.png$/i.test(name));
+  const hasEmptyDesktop = desktopStates.includes("state-empty.png");
+  const hasEmptyMobile = mobileStates.includes("mobile-state-empty.png");
+  const hasNonEmptyDesktop = desktopStates.some((name) => name !== "state-empty.png");
+  const hasNonEmptyMobile = mobileStates.some((name) => name !== "mobile-state-empty.png");
+  return {
+    ok: hasEmptyDesktop && hasEmptyMobile && hasNonEmptyDesktop && hasNonEmptyMobile,
+    desktop_states: desktopStates,
+    mobile_states: mobileStates,
+    missing: [
+      hasEmptyDesktop ? null : ".test/ai/evidence/state-empty.png",
+      hasEmptyMobile ? null : ".test/ai/evidence/mobile-state-empty.png",
+      hasNonEmptyDesktop ? null : ".test/ai/evidence/state-<success-or-error>.png",
+      hasNonEmptyMobile ? null : ".test/ai/evidence/mobile-state-<success-or-error>.png"
+    ].filter(Boolean)
+  };
+}
+
 function requiredEvidence(cwd) {
   const todayAcceptance = `.test/ai/reports/acceptance-${todayStamp()}.md`;
   const files = [
@@ -2481,16 +2554,29 @@ function requiredEvidence(cwd) {
     ".plan/SPEC.md",
     ".plan/CHECKLIST.md",
     exists(cwd, todayAcceptance) ? todayAcceptance : ".test/ai/reports/acceptance-20260601.md",
+    ".test/ai/reports/four-role-review.md",
+    "docs/ui-ux/ACCEPTANCE.md",
     ".test/ai/evidence/desktop.png",
     ".test/ai/evidence/mobile.png",
+    ".test/ai/evidence/state-empty.png",
+    ".test/ai/evidence/mobile-state-empty.png",
     "HANDOFF.md"
   ];
-  return files.map((rel) => ({ file: rel, exists: exists(cwd, rel) }));
+  const requiredFiles = files.map((rel) => ({ file: rel, exists: exists(cwd, rel) }));
+  const fourRole = parseFourRoleReview(cwd);
+  const states = stateScreenshotGate(cwd);
+  return {
+    files: requiredFiles,
+    four_role_review: fourRole,
+    state_screenshots: states,
+    ok: requiredFiles.every((item) => item.exists) && fourRole.ok && states.ok
+  };
 }
 
 function handleRunCommand(args) {
   const cwd = path.resolve(args.cwd);
   const corpus = readRunCorpus(cwd);
+  const requirementHandoff = hasRequirementToRunHandoff(corpus);
   const handoff = hasDeliveryContentsGate(corpus);
   const stats = checklistStats(cwd);
   const commandRecords = [];
@@ -2499,7 +2585,7 @@ function handleRunCommand(args) {
   runNpmScriptIfPresent(cwd, "build", commandRecords);
   const commandsOk = commandRecords.every((record) => record.exit_code === 0);
   const hasExecutableEvidence = commandRecords.length > 0;
-  const pass = handoff.ok && stats.open_core === 0 && commandsOk && hasExecutableEvidence && testRun.present;
+  const pass = requirementHandoff.ok && handoff.ok && stats.open_core === 0 && commandsOk && hasExecutableEvidence && testRun.present;
   const payload = {
     schema_version: 1,
     command: "/kit-run",
@@ -2509,6 +2595,7 @@ function handleRunCommand(args) {
     state: pass ? "run-closed" : "blocked-before-run",
     required_next_command: pass ? "/kit-check diff" : "/kit",
     gates: {
+      requirement_to_run_handoff: requirementHandoff,
       delivery_contents_gate: handoff,
       checklist_done: stats.done,
       checklist_open: stats.open,
@@ -2611,9 +2698,10 @@ function handleTestCommand(args) {
   const commandRecords = [];
   const testRun = runNpmScriptIfPresent(cwd, "test", commandRecords);
   const evidence = requiredEvidence(cwd);
-  const missingEvidence = evidence.filter((item) => !item.exists).map((item) => item.file);
+  const inputManifest = packageInputManifest(cwd);
+  const missingEvidence = evidence.files.filter((item) => !item.exists).map((item) => item.file);
   const commandsOk = commandRecords.every((record) => record.exit_code === 0);
-  const pass = checkState?.decision === "go" && testRun.present && commandsOk && missingEvidence.length === 0;
+  const pass = checkState?.decision === "go" && testRun.present && commandsOk && evidence.ok;
   const payload = {
     schema_version: 1,
     command: "/kit-test",
@@ -2626,7 +2714,9 @@ function handleTestCommand(args) {
       check_go_present: checkState?.decision === "go",
       npm_test_present: testRun.present,
       executable_commands_passed: commandsOk,
-      missing_evidence: missingEvidence
+      missing_evidence: missingEvidence,
+      four_role_review: evidence.four_role_review,
+      state_screenshots: evidence.state_screenshots
     },
     commands: commandRecords,
     evidence: {
@@ -2634,6 +2724,7 @@ function handleTestCommand(args) {
       report_file: null,
       required_evidence: evidence
     },
+    package_input_manifest: inputManifest,
     generated_at: new Date().toISOString()
   };
   const reportRel = `.test/ai/reports/acceptance-state-${todayStamp()}-${stableTimestamp()}.json`;
@@ -2662,10 +2753,77 @@ function copyPackageFile(cwd, rel, outDir, manifest) {
   manifest.files.push(rel);
 }
 
+function hashFile(file) {
+  return crypto.createHash("sha256").update(fs.readFileSync(file)).digest("hex");
+}
+
+function packageInputFiles(cwd) {
+  const roots = [
+    "README.md",
+    "AGENTS.md",
+    "CLAUDE.md",
+    "HANDOFF.md",
+    "package.json",
+    "server.mjs",
+    "test.mjs",
+    "public",
+    "data",
+    "docs",
+    ".plan",
+    ".kit",
+    ".workflow",
+    ".test/README.md",
+    ".test/config.json",
+    ".test/ai/reports",
+    ".test/ai/evidence",
+    ".test/user/README.md",
+    ".test/user/acceptance",
+    ".test/user/evidence",
+    ".test/user/feedback",
+    ".test/user/guides"
+  ];
+  const files = [];
+  for (const rel of roots) {
+    const full = path.join(cwd, rel);
+    if (!fs.existsSync(full)) continue;
+    const stat = fs.statSync(full);
+    if (stat.isFile()) {
+      files.push(rel);
+    } else if (stat.isDirectory()) {
+      for (const file of listFilesRecursive(full, { maxFiles: 10000, maxDepth: 24 })) {
+        const itemRel = path.relative(cwd, file).replace(/\\/g, "/");
+        if (itemRel.includes("/node_modules/") || itemRel.includes("/.test/user/packages/") || itemRel.includes("/.deliverables/")) continue;
+        if (/^data\/.+\.json$/.test(itemRel)) continue;
+        if (/^\.kit\/(run|check|test|pack)-state\.json$/.test(itemRel)) continue;
+        if (/^\.test\/ai\/reports\/.*(run-closure|kit-check|acceptance-state|pack-state|test-\d{4}-|\d{8}-test-).*\.(json|log)$/.test(itemRel)) continue;
+        if (fs.statSync(file).isFile()) files.push(itemRel);
+      }
+    }
+  }
+  return [...new Set(files)].sort();
+}
+
+function packageInputManifest(cwd) {
+  const files = packageInputFiles(cwd).map((rel) => {
+    const full = path.join(cwd, rel);
+    const stat = fs.statSync(full);
+    return {
+      file: rel,
+      size: stat.size,
+      mtime_ms: Math.trunc(stat.mtimeMs),
+      sha256: hashFile(full)
+    };
+  });
+  const digest = crypto.createHash("sha256").update(JSON.stringify(files)).digest("hex");
+  return { digest, files };
+}
+
 function handlePackCommand(args) {
   const cwd = path.resolve(args.cwd);
   const testState = exists(cwd, ".kit/test-state.json") ? parseJsonFile(cwd, ".kit/test-state.json") : null;
-  const pass = testState?.state === "acceptance-closed";
+  const inputManifest = packageInputManifest(cwd);
+  const snapshotMatches = testState?.package_input_manifest?.digest === inputManifest.digest;
+  const pass = testState?.state === "acceptance-closed" && snapshotMatches;
   const outRel = `.test/user/packages/${safePackageName(cwd)}-v1-${todayStamp()}`;
   const outDir = path.join(cwd, outRel);
   const manifest = {
@@ -2679,9 +2837,34 @@ function handlePackCommand(args) {
   if (pass) {
     if (fs.existsSync(outDir)) fs.rmSync(outDir, { recursive: true, force: true });
     ensureDir(outDir);
-    for (const rel of ["README.md", "HANDOFF.md", "package.json", "server.mjs", "test.mjs", "public", "data", ".plan", ".test/ai/reports", ".test/ai/evidence", ".kit"]) {
+    for (const rel of [
+      "README.md",
+      "AGENTS.md",
+      "CLAUDE.md",
+      "HANDOFF.md",
+      "package.json",
+      "server.mjs",
+      "test.mjs",
+      "public",
+      "data",
+      "docs",
+      ".plan",
+      ".kit",
+      ".workflow",
+      ".test/README.md",
+      ".test/config.json",
+      ".test/ai/reports",
+      ".test/ai/evidence",
+      ".test/user/README.md",
+      ".test/user/acceptance",
+      ".test/user/evidence",
+      ".test/user/feedback",
+      ".test/user/guides"
+    ]) {
       copyPackageFile(cwd, rel, outDir, manifest);
     }
+    ensureDir(path.join(outDir, ".test", "user", "packages"));
+    manifest.input_manifest = inputManifest;
     writeJsonFile(path.join(outDir, "PACKAGE-MANIFEST.json"), manifest);
   }
   const payload = {
@@ -2693,7 +2876,8 @@ function handlePackCommand(args) {
     state: pass ? "package-created" : "blocked-before-pack",
     required_next_command: pass ? "handoff to user" : "/kit-test",
     gates: {
-      acceptance_closed: pass
+      acceptance_closed: testState?.state === "acceptance-closed",
+      package_input_snapshot_matches: snapshotMatches
     },
     evidence: {
       state_file: ".kit/pack-state.json",
@@ -2701,6 +2885,7 @@ function handlePackCommand(args) {
       package_dir: pass ? outRel : null,
       package_manifest: pass ? `${outRel}/PACKAGE-MANIFEST.json` : null
     },
+    package_input_manifest: inputManifest,
     generated_at: new Date().toISOString()
   };
   const reportRel = `.test/ai/reports/pack-state-${todayStamp()}-${stableTimestamp()}.json`;

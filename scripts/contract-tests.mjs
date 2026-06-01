@@ -156,7 +156,7 @@ test("run/check commands write executable phase state reports", () => {
   assert(blockedPayload.state === "blocked-before-run", "run should record blocked-before-run state");
   assert(fs.existsSync(path.join(project, ".kit", "run-state.json")), "missing run state file after blocked run");
 
-  fs.writeFileSync(path.join(project, "README.md"), "# acceptance app\n\nProject version: `0.1.0`\n\n## Requirement-to-Run Handoff\n## Delivery Contents Gate\nIncluded: app files\nExcluded: live deploy\nKnown risks: demo only\nEvidence: tests and screenshots\n", "utf8");
+  fs.writeFileSync(path.join(project, "README.md"), "# acceptance app\n\nProject version: `0.1.0`\n\n## Requirement-to-Run Handoff\nConfirmed requirements: fixture is ready for /kit-run.\nPlan: CHECKLIST is closed.\nNext: /kit-run -> /kit-check -> /kit-test -> /kit-pack.\n\n## Delivery Contents Gate\nIncluded: app files\nExcluded: live deploy\nKnown risks: demo only\nEvidence: tests and screenshots\n", "utf8");
   fs.writeFileSync(path.join(project, ".plan", "CHECKLIST.md"), "# CHECKLIST\n\n任务列表前置规划\n停止门/验收门\n\n- [x] Implement app\n- [x] Run tests\n", "utf8");
 
   const runResult = run(["run", "--cwd", project, "--json"]);
@@ -199,14 +199,26 @@ test("test/pack commands require executable acceptance state", () => {
   assert(init.code === 0, `init failed: ${init.stderr}`);
   fs.writeFileSync(path.join(project, "package.json"), JSON.stringify({ scripts: { test: "node --version" } }, null, 2), "utf8");
   fs.writeFileSync(path.join(project, "HANDOFF.md"), "# HANDOFF\n\nDelivery Contents Gate confirmed.\n", "utf8");
-  fs.writeFileSync(path.join(project, "README.md"), "# acceptance app\n\nProject version: `0.1.0`\n\n## Requirement-to-Run Handoff\n## Delivery Contents Gate\nIncluded: app files\nExcluded: live deploy\nKnown risks: demo only\nEvidence: tests and screenshots\n", "utf8");
+  fs.writeFileSync(path.join(project, "README.md"), "# acceptance app\n\nProject version: `0.1.0`\n\n## Requirement-to-Run Handoff\nConfirmed requirements: fixture is ready for /kit-run.\nPlan: CHECKLIST is closed.\nNext: /kit-run -> /kit-check -> /kit-test -> /kit-pack.\n\n## Delivery Contents Gate\nIncluded: app files\nExcluded: live deploy\nKnown risks: demo only\nEvidence: tests and screenshots\n", "utf8");
   fs.writeFileSync(path.join(project, "AGENTS.md"), "# AGENTS\n\nProject version: `0.1.0`\nUse .plan, .kit, .workflow, and .test as project facts.\n", "utf8");
   fs.mkdirSync(path.join(project, ".workflow"), { recursive: true });
   fs.writeFileSync(path.join(project, ".workflow", "README.md"), "# Workflow\n\nProject version: `0.1.0`\nActive workflow entry: `.workflow/README.md`.\n", "utf8");
   fs.writeFileSync(path.join(project, ".plan", "PRD.md"), "# PRD\n\nGoal: demo app.\n\n✅ 用户确认 | 时间: 2026-06-01 | 版本: 0.1.0\n", "utf8");
   fs.writeFileSync(path.join(project, ".plan", "SPEC.md"), "# SPEC\n\nHandoff routed through /kit-run -> /kit-check -> /kit-test -> /kit-pack.\n\n## Charter Consistency\nREADME.md, AGENTS.md, .workflow/README.md, .test/README.md, PRD, SPEC, CHECKLIST, and .kit/version.json are aligned.\n\n## Capability Skill Inventory\nHost status: Codex with kit-skills and deep-research available. Project status: no project-local skill install required. Install target: none. Approval: not needed for fixture. Evidence: contract test.\n\n## Invocation Status Brief\n当前状态: V1 acceptance. 终点: Definition of Done with Stop Gate. question-bank.json SB1 referenced.\n\n## Archive Interaction Gate\n归档前确认: PRD, SPEC, CHECKLIST, .kit, .workflow, .test, README, HANDOFF, and live files must be aligned. No extra question is needed only when validate has no P0/P1 and facts are aligned.\n\n## Framework Routing Decision\nUse KIT only for this fixture. OpenSpec and Super Dev are not needed for this small backend fixture.\n\n## Model / Agent Risk Ledger\nProvider/model version: none. Cost budget quota rate limit: none. Context token chunk truncation: none. Tool permission policy: allowlist only, denylist live action and dangerous operations. Eval isolation: contract temp directory. Prompt drift policy / 提示词/人设漂移策略: not applicable. Trace sensitive data policy: no traces retained. Reproducibility policy / 可复现性策略: deterministic fixture. Content safety: no content generation. Evidence retention: .test/ai/reports.\n\n✅ 用户确认 | 时间: 2026-06-01 | 版本: 0.1.0\n", "utf8");
   fs.writeFileSync(path.join(project, ".plan", "CHECKLIST.md"), "# CHECKLIST\n\n任务列表前置规划\n停止门/验收门\n\n- [x] Implement app\n- [x] Run tests\n\n✅ 用户确认 | 时间: 2026-06-01 | 版本: 0.1.0\n", "utf8");
-  for (const rel of [".test/ai/reports/acceptance-20260601.md", ".test/ai/evidence/desktop.png", ".test/ai/evidence/mobile.png"]) {
+  fs.mkdirSync(path.join(project, "docs", "ui-ux"), { recursive: true });
+  fs.writeFileSync(path.join(project, "docs", "ui-ux", "ACCEPTANCE.md"), "# UI Acceptance\n\nDesktop, mobile, empty, success, and error screenshots captured.\n", "utf8");
+  fs.mkdirSync(path.join(project, ".test", "ai", "reports"), { recursive: true });
+  fs.writeFileSync(path.join(project, ".test", "ai", "reports", "four-role-review.md"), "# Four-role Review\n\n| Role | Score | Judgment |\n| --- | ---: | --- |\n| PM | 95 | Pass. |\n| Code | 95 | Pass. |\n| Frontend | 95 | Pass. |\n| Backend | 95 | Pass. |\n", "utf8");
+  for (const rel of [
+    ".test/ai/reports/acceptance-20260601.md",
+    ".test/ai/evidence/desktop.png",
+    ".test/ai/evidence/mobile.png",
+    ".test/ai/evidence/state-empty.png",
+    ".test/ai/evidence/mobile-state-empty.png",
+    ".test/ai/evidence/state-success.png",
+    ".test/ai/evidence/mobile-state-success.png"
+  ]) {
     fs.mkdirSync(path.dirname(path.join(project, rel)), { recursive: true });
     fs.writeFileSync(path.join(project, rel), "evidence", "utf8");
   }
@@ -224,10 +236,14 @@ test("test/pack commands require executable acceptance state", () => {
   const testPayload = parseJson(testResult.stdout, "test payload");
   assert(testPayload.state === "acceptance-closed", "test should close acceptance");
   const packResult = run(["pack", "--cwd", project, "--json"]);
-  assert(packResult.code === 0, `pack should pass: ${packResult.stderr}`);
+  assert(packResult.code === 0, `pack should pass: ${packResult.stderr} ${packResult.stdout}`);
   const packPayload = parseJson(packResult.stdout, "pack payload");
   assert(packPayload.state === "package-created", "pack should create package state");
   assert(fs.existsSync(path.join(project, packPayload.evidence.package_manifest)), "pack should write package manifest");
+  assert(packPayload.gates.package_input_snapshot_matches === true, "pack should verify current input snapshot");
+  for (const rel of ["AGENTS.md", ".workflow/README.md", ".test/README.md", ".test/user/README.md", "docs/ui-ux/ACCEPTANCE.md"]) {
+    assert(fs.existsSync(path.join(project, packPayload.evidence.package_dir, rel)), `pack should include ${rel}`);
+  }
 });
 
 test("scan limits are reported when recursive scan is capped", () => {
