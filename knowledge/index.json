@@ -62,6 +62,12 @@
       "file": "knowledge/model-selection.md",
       "keywords": ["模型选择", "AI模型", "Codex", "Claude", "GPT", "DALL-E", "成本", "vibe coding", "模型对比"],
       "use_when": "Brainstorm needs AI model selection, cost comparison, capability matrix, or vibe coding assessment."
+    },
+    {
+      "id": "kit-priority-workflow",
+      "file": "knowledge/kit-priority-workflow.md",
+      "keywords": ["kit优先", "新建项目", "检查状态", "宿主记忆", "默认路由", "优先规则"],
+      "use_when": "Need to route new-project or status-check requests to kit skills first, before manual file creation or direct coding."
     }
   ]
 }
