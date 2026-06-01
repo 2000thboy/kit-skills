@@ -226,6 +226,29 @@ test("phase start, check plan, delivery contents, and Codex goal gates are docum
   assert(corpus.includes("included") && corpus.includes("excluded") && corpus.includes("known risks"), "delivery contents must list included/excluded/known risks");
 });
 
+test("commercial, mainland, ui, and four-role review gates are documented", () => {
+  const requiredFiles = [
+    "quality/commercial-delivery.md",
+    "quality/four-role-review.md",
+    "knowledge/china-mainland-delivery.md",
+    "knowledge/ui-commercial-2026.md"
+  ];
+  for (const rel of requiredFiles) {
+    assert(fs.existsSync(path.join(root, rel)), `missing ${rel}`);
+  }
+  const corpus = [
+    fs.readFileSync(path.join(root, "SKILL.md"), "utf8"),
+    fs.readFileSync(path.join(root, "README.md"), "utf8"),
+    fs.readFileSync(path.join(root, "modes", "check.md"), "utf8"),
+    fs.readFileSync(path.join(root, "knowledge", "index.json"), "utf8")
+  ].join("\n");
+  assert(corpus.includes("Four-Role") || corpus.includes("四重"), "missing four-role review");
+  assert(corpus.includes(">= 95") || corpus.includes("≥95"), "missing 95 score gate");
+  assert(corpus.includes("china-mainland-delivery"), "missing China mainland routing");
+  assert(corpus.includes("ui-commercial-2026"), "missing commercial UI routing");
+  assert(corpus.includes("self-supervision") || corpus.includes("自我督导"), "missing agent self-supervision gate");
+});
+
 test("pack dry-run JSON contains portable runtime files", () => {
   const npmCli = process.env.npm_execpath;
   assert(npmCli && fs.existsSync(npmCli), "npm_execpath is unavailable; run this test through npm run check:contract");

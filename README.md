@@ -44,6 +44,10 @@ KIT v2.0 提供八个命令，覆盖产品到开发的完整闭环：
 
 交付前最重要的是 `Delivery Contents Gate`：在 `/kit-test`、`/kit-pack`、归档或交接前，必须确认“交付内容物”。至少列出包含什么、不包含什么、证据在哪里、怎么运行/打开、已知风险是什么。用户未确认内容物时，不得声称可交付。
 
+商业项目还必须通过商业交付门：`quality/commercial-delivery.md`、`quality/four-role-review.md`、`knowledge/ui-commercial-2026.md` 和按需使用的 `knowledge/china-mainland-delivery.md`。重大交付要经过 Top PM、Top Code Engineer、Top Frontend Engineer、Backend Framework Engineer 四重评审，每项都必须 ≥95 分才算通过。
+
+知识库、RAG、智能体或自动化 workflow 必须记录自我督导策略：检索/eval 质量、来源新鲜度、工具调用 schema 校验、循环限制、成本/延迟预算、trace 脱敏、回归案例和失败回滚。
+
 ## 核心用途
 
 - brainstorm：先聊清产品方向。
@@ -899,6 +903,8 @@ npm run check:pack
 - `pure-md-framework.md`
 - `opencli-framework.md`
 - `product-prototype-knowledge.md`
+- `china-mainland-delivery.md`
+- `ui-commercial-2026.md`
 - `question-bank.json`
 - `index.json`
 
@@ -940,6 +946,7 @@ npm pack --dry-run
 
 - 增加 `Phase Start`、`Phase Closure` 和 `Requirement-to-Run Handoff`，让每个 phase 启动和结束都有目标、总结、评价、风险、建议和下一条命令。
 - 增加 `Delivery Contents Gate`：验收、打包、归档或交接前必须确认交付内容物；Codex 长阶段建议使用 Goal 模式。
+- 增加商业交付能力：四重 95 分评审、中国大陆交付场景、2026 商业 UI 质量门、知识库/智能体自我督导要求。
 - 重新压清 `/kit-run` 与 `/kit-check` 边界：`/kit-run` 负责实现、自测、修复和基础验收；`/kit-check` 负责 Hedge、极端场景、语义风险和 go/no-go 判断。
 - 明确需求确认后必须先列出计划总览、全需求审查和执行计划，再衔接 `/kit-run start`。
 - `/kit-pack` 的破坏性清理示例增加路径预览、用户确认和 Windows PowerShell 安全提示；`rm -rf` 不再作为可直接盲复制的步骤。

@@ -50,6 +50,10 @@ Core responsibilities:
 - Run Hedge quick/deep/security adversarial checks.
 - Test edge cases that ordinary tests miss: empty input, oversized input, concurrency, path boundaries, permissions, cancellation, stale state, and state pollution.
 - Check semantic risks: wrong requirement interpretation, command-boundary confusion, fake completion, mock residue, missing persistence, and tests that prove the wrong behavior.
+- Run Commercial Delivery Gate when the output will be handed to a real user or customer.
+- Run Four-Role 95 Review for major handoff: Top PM, Top Code Engineer, Top Frontend Engineer, Backend Framework Engineer.
+- Check knowledge-base / agent self-supervision when RAG, tools, prompts, evals, or autonomous workflows are in scope.
+- Apply China Mainland Delivery Notes when the product depends on mainland deployment, payment, login, SMS, maps, ICP, or customer handoff.
 - Produce a go/fix/block judgment.
 - Route failures back to `/kit-run fix <scope>` with a prioritized fix list.
 
@@ -141,6 +145,16 @@ Report format:
 
 ### 回流计划
 1. <fix order>
+
+### 四重评审
+| Reviewer | Score | Verdict | Main Reason |
+|---|---:|---|---|
+| Top PM |  |  |  |
+| Top Code Engineer |  |  |  |
+| Top Frontend Engineer |  |  |  |
+| Backend Framework Engineer |  |  |  |
+
+Pass requires every score >= 95.
 
 ### 下一条命令
 `/kit-run fix <scope>` or `/kit-test`

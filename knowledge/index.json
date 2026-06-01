@@ -74,6 +74,18 @@
       "file": "knowledge/path-output-convention.md",
       "keywords": ["路径输出", "IDE", "CLI", "路径格式", "环境检测", "Ctrl+点击"],
       "use_when": "AI needs to output file paths to the user and must choose between IDE-clickable relative paths and CLI-friendly absolute paths."
+    },
+    {
+      "id": "china-mainland-delivery",
+      "file": "knowledge/china-mainland-delivery.md",
+      "keywords": ["中国大陆", "大陆场景", "ICP备案", "微信登录", "微信支付", "支付宝", "短信", "小程序", "交付"],
+      "use_when": "The product will be deployed, sold, operated, paid for, or handed off in mainland China."
+    },
+    {
+      "id": "ui-commercial-2026",
+      "file": "knowledge/ui-commercial-2026.md",
+      "keywords": ["UI审美", "商业UI", "SaaS", "dashboard", "accessibility", "前端审美", "交付客户"],
+      "use_when": "The product has a frontend, customer-facing UI, admin panel, AI interface, or commercial demo requirement."
     }
   ]
 }

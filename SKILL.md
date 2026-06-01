@@ -139,6 +139,18 @@ Required contents confirmation:
 - known risks
 - whether the user accepts the contents and exclusions
 
+## Commercial / Agent / Mainland Gates
+
+For any project intended for real users, customers, internal operations, or paid delivery, apply:
+
+- `quality/commercial-delivery.md` before claiming commercial readiness.
+- `quality/four-role-review.md` before major handoff; pass requires Top PM, Top Code Engineer, Top Frontend Engineer, and Backend Framework Engineer all score >= 95.
+- `knowledge/ui-commercial-2026.md` when UI, dashboard, admin panel, or AI interface is present.
+- `knowledge/china-mainland-delivery.md` when mainland China users, hosting, payment, login, SMS, maps, ICP, or customer handoff are in scope.
+- Model / Agent Risk Ledger when the project includes knowledge base, RAG, agents, tools, prompts, evals, or autonomous workflows.
+
+Knowledge-base and agent projects need self-supervision: retrieval/eval quality, source freshness, tool-call validation, loop limits, cost/latency budgets, trace redaction, and regression cases.
+
 ## Critical Gates
 
 ### User Gate（用户门禁 — 不可跳过）
@@ -159,6 +171,7 @@ Required contents confirmation:
 - Session Boundary：阶段结束要写清当前状态、未完成项、验证结果和下一步，避免跨会话状态污染。
 - Phase Report Gate：每个阶段启动必须输出 Phase Start，结束必须输出 Phase Closure；需求确认后必须输出 Requirement-to-Run Handoff。
 - Delivery Contents Gate：验收、打包、归档或交接前必须确认交付内容物；这是最高优先级交接门。
+- Commercial Delivery Gate：商业项目必须通过商业交付检查、四重 95 分评审、UI 商业质量和大陆场景检查（如适用）。
 - P0 findings block progress until fixed.
 - P1 findings require explicit user acknowledgment before continuing.
 
