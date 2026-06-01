@@ -882,6 +882,20 @@ node <path-to-kit-skills>\scripts\contract-tests.mjs
 npm pack --dry-run
 ```
 
+## 最近更新
+
+**版本：0.4.1**  
+**更新日期：2026-06-01**
+
+本次更新围绕 Hedge 语义检查后的硬问题修复：
+
+- `/kit-pack` 的破坏性清理示例增加路径预览、用户确认和 Windows PowerShell 安全提示；`rm -rf` 不再作为可直接盲复制的步骤。
+- `/kit-run test` 明确为开发期项目测试；`/kit-test` 保持为交付前验收层，负责版本边界、临时验收包、验收测试和报告。
+- Hedge 缺失时不能声称最终 ready；必须记录 `adversarial_check: incomplete`，并由用户显式接受风险。
+- `/kit-loop` 增加 `KIT_LOOP_DEPTH`、`.kit/kit.lock`、最大轮次/时长和 blocker pointer-only 规则，降低递归与并发交错风险。
+- `spec-loop-kit.mjs` 增加 JSON 解析错误报告和递归扫描上限，避免坏配置被静默忽略或大仓库扫描失控。
+- 合同测试增至 12 条，覆盖坏 JSON 和扫描上限；Codex 与 Claude Code 两侧 `npm run check:all` 均通过。
+
 ## License
 
 `MIT License`。见 `LICENSE`。
