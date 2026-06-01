@@ -144,6 +144,35 @@ test("invalid json config is reported instead of silently ignored", () => {
   assert(report.p1.some((issue) => issue.code === "invalid-json" && issue.file === ".test/config.json"), "missing invalid-json issue for .test/config.json");
 });
 
+test("run/check commands write executable phase state reports", () => {
+  const project = path.join(tmpRoot, "state-machine-app");
+  const init = run(["init", "--cwd", project, "--owner", "tester", "--level", "2", "--host", "generic", "--skip-brainstorm"]);
+  assert(init.code === 0, `init failed: ${init.stderr}`);
+
+  const blockedRun = run(["run", "--cwd", project, "--json"]);
+  assert(blockedRun.code === 2, `run without handoff should block, got ${blockedRun.code}`);
+  const blockedPayload = parseJson(blockedRun.stdout, "blocked run payload");
+  assert(blockedPayload.state === "blocked-before-run", "run should record blocked-before-run state");
+  assert(fs.existsSync(path.join(project, ".kit", "run-state.json")), "missing run state file after blocked run");
+
+  fs.appendFileSync(path.join(project, "README.md"), "\n## Requirement-to-Run Handoff\nDelivery Contents Gate\n", "utf8");
+
+  const runResult = run(["run", "--cwd", project, "--json"]);
+  assert(runResult.code === 0, `run with handoff should pass: ${runResult.stderr}`);
+  const runPayload = parseJson(runResult.stdout, "run payload");
+  assert(runPayload.state === "run-closed", "run should record run-closed state");
+  assert(runPayload.required_next_command === "/kit-check diff", "run should bridge to /kit-check diff");
+  assert(fs.existsSync(path.join(project, runPayload.evidence.report_file)), "missing run closure report");
+
+  const checkResult = run(["check", "--cwd", project, "--json"]);
+  assert([0, 2].includes(checkResult.code), `check should return go or fix/block, got ${checkResult.code}`);
+  const checkPayload = parseJson(checkResult.stdout, "check payload");
+  assert(checkPayload.gates.run_closure_present === true, "check should prove run closure presence");
+  assert(["go", "fix"].includes(checkPayload.decision), `unexpected check decision: ${checkPayload.decision}`);
+  assert(fs.existsSync(path.join(project, ".kit", "check-state.json")), "missing check state file");
+  assert(fs.existsSync(path.join(project, checkPayload.evidence.report_file)), "missing kit-check report");
+});
+
 test("scan limits are reported when recursive scan is capped", () => {
   const project = path.join(tmpRoot, "scan-limit-app");
   const init = run(["init", "--cwd", project, "--owner", "tester", "--level", "2", "--host", "generic"]);

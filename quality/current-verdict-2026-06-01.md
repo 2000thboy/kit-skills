@@ -1,13 +1,13 @@
 # KIT Current Verdict
 
 Date: 2026-06-01
-Target: kit-skills `3df7ce5`
+Target: kit-skills after `4e0fb85` remediation work
 
 ## Verdict
 
-Status: PASS for current V1 skill-package readiness, with production-use caveats.
+Status: PENDING INDEPENDENT RE-REVIEW.
 
-This verdict applies to the skill framework and demo evidence available on 2026-06-01. It does not claim that every future generated project is production-ready without project-specific `/kit-check`, `/kit-test`, and customer handoff review.
+This verdict records the remediation state after the independent four-role review found that the prior `95/100 PASS` claim was too optimistic. The framework and demo artifacts have been repaired, but the final four-role score must be re-run before this file can claim production readiness again.
 
 ## Coupling and boundary review
 
@@ -15,20 +15,28 @@ This verdict applies to the skill framework and demo evidence available on 2026-
 | --- | --- | --- |
 | Command boundary | Acceptable. `/kit-run` owns implementation, self-test, fix, and basic acceptance. `/kit-check` owns Hedge, edge cases, semantic risk, and go/no-go. `/kit-test` owns acceptance package and report. `/kit-pack` owns V1 delivery package after acceptance or explicit risk acceptance. | `SKILL.md`, `README.md`, `modes/run.md`, `modes/check.md`, `modes/kit.md` |
 | Phase boundary | Acceptable. Each phase requires `Phase Start` and `Phase Closure`; requirement completion requires `Requirement-to-Run Handoff`; handoff requires `Delivery Contents Gate`. | `SKILL.md`, `README.md`, `modes/kit.md` |
-| Harness effect | Acceptable for V1. The CLI helper validates syntax, contracts, self-audit, package contents, JSON config errors, scan caps, and cleanup-doc safety. | `npm run check:all`, `scripts/contract-tests.mjs` |
-| Codex/Claude parity | Acceptable. Both local skill copies are on the same commit and pass the same check suite. | Codex and Claude worktrees at `3df7ce5` |
+| Harness effect | Improved. The CLI helper now writes `/kit-run` and `/kit-check` phase state files and JSON reports, so the command chain is no longer only documentation text. | `bin/spec-loop-kit.mjs`, `scripts/contract-tests.mjs` |
+| Codex/Claude parity | Must be re-verified after syncing this remediation commit. | Codex and Claude worktrees after sync |
 | Destructive cleanup safety | Improved. Delivery cleanup docs no longer expose copy-paste `rm -rf` or recursive `Remove-Item` runnable lines. | contract test `delivery cleanup docs do not expose copy-paste destructive delete commands` |
 
-## Four-role score
+## Independent four-role review before remediation
 
 | Role | Score | Judgment |
 | --- | ---: | --- |
-| Top PM | 95 | The workflow now gives a normal user a visible path from requirement clarification to plan, run, check, acceptance, and package. Delivery contents and exclusions are explicit gates. |
-| Top Code Engineer | 95 | Contract tests cover the important command seams, packaging, invalid config handling, scan limits, and destructive cleanup doc regression. |
-| Top Frontend Engineer | 95 | The skill routes UI projects to `quality/ui.md` and `knowledge/ui-commercial-2026.md`; demo projects include desktop/mobile browser evidence. |
-| Backend Framework Engineer | 95 | The skill separates implementation, review, acceptance, and package responsibilities; demo projects cover persistence, role gates, audit logs, and agent tool validation. |
+| Top PM | 88 | Demo acceptance evidence existed, but CHECKLIST/SPEC/HANDOFF alignment and delivery-content gate reporting were incomplete. |
+| Top Code Engineer | 88 | Demo verification could false-pass on fixed ports, and error-path/security tests were thin. |
+| Top Frontend Engineer | 60 | Demo UIs were too minimal and lacked realistic interaction states. |
+| Backend Framework Engineer | 92 | `/kit-run` and `/kit-check` behaved like helper text rather than an executable phase state machine. |
 
-Overall: 95 / 100 for current V1 skill-package readiness.
+Overall before remediation: not accepted. Required threshold is 95+ for each role.
+
+## Remediation completed
+
+- Demo verification now uses random free ports, health checks, title checks, process-exit checks, stderr checks, and screenshot capture tied to the actual run URL.
+- Demo projects now include richer interactive UI, stronger invalid JSON handling, XSS rejection, CSV formula escaping, error-path tests, checked V1 acceptance items, aligned SPEC/HANDOFF content, and acceptance reports.
+- `/kit-run` now writes `.kit/run-state.json` and a Run Closure JSON report.
+- `/kit-check` now reads run closure state, writes `.kit/check-state.json`, writes a check report, and returns a `go` / `fix` / `block` decision.
+- Contract tests now cover the executable `/kit-run` -> `/kit-check` phase handoff.
 
 ## Demo delivery evidence
 
@@ -51,10 +59,10 @@ npm run check:all
 python C:\Users\hy11\.agents\skills\hedge\hedge-sec-scan.py C:\Users\hy11\.codex\skills\kit-skills --format=md --severity=low
 ```
 
-Results on 2026-06-01:
+Latest local results on 2026-06-01:
 
-- Codex `npm run check:all`: PASS, 17/17 contract tests passed.
-- Claude `npm run check:all`: PASS, 17/17 contract tests passed.
+- Codex `npm run check:all`: PASS, 18/18 contract tests passed.
+- Claude `npm run check:all`: must be re-run after sync.
 - Hedge security scan: 0 findings.
 - Demo root `.\scripts\verify-all.ps1`: PASS.
 - Demo root `.\scripts\package-deliverables.ps1`: PASS.
@@ -62,6 +70,6 @@ Results on 2026-06-01:
 
 ## Current caveats
 
-- The four-role score is based on current artifacts and command evidence, not independent human review.
+- The four-role score must be re-run after this remediation before claiming 95+ readiness.
 - Demo packages are V1 commercial handoff demos, not fully deployed production services.
 - Future projects still need project-specific `/kit-check full`, browser evidence, acceptance reports, and customer confirmation before commercial delivery claims.

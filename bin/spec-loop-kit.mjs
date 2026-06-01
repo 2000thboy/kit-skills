@@ -2372,6 +2372,116 @@ function printUsage() {
   console.log("    同步则退出码 0, 发现差异则退出码 1.");
 }
 
+function stableTimestamp() {
+  return new Date().toISOString().replace(/[:.]/g, "-");
+}
+
+function todayStamp() {
+  return new Date().toISOString().slice(0, 10).replaceAll("-", "");
+}
+
+function writeJsonFile(target, payload) {
+  ensureDir(path.dirname(target));
+  fs.writeFileSync(target, JSON.stringify(payload, null, 2), "utf8");
+}
+
+function readRunCorpus(cwd) {
+  return [
+    readText(cwd, "README.md"),
+    readText(cwd, "HANDOFF.md"),
+    readText(cwd, ".plan/PRD.md"),
+    readText(cwd, ".plan/SPEC.md"),
+    readText(cwd, ".plan/CHECKLIST.md")
+  ].join("\n");
+}
+
+function checklistStats(cwd) {
+  const checklist = readText(cwd, ".plan/CHECKLIST.md");
+  const done = (checklist.match(/\[[xX]\]/g) || []).length;
+  const open = (checklist.match(/\[ \]/g) || []).length;
+  return { done, open };
+}
+
+function handleRunCommand(args) {
+  const cwd = path.resolve(args.cwd);
+  const corpus = readRunCorpus(cwd);
+  const hasHandoff = corpus.includes("Requirement-to-Run Handoff") || corpus.includes("Delivery Contents Gate");
+  const stats = checklistStats(cwd);
+  const payload = {
+    schema_version: 1,
+    command: "/kit-run",
+    cwd,
+    phase: "run",
+    status: hasHandoff ? "PASS" : "BLOCKED",
+    state: hasHandoff ? "run-closed" : "blocked-before-run",
+    required_next_command: hasHandoff ? "/kit-check diff" : "/kit",
+    gates: {
+      requirement_to_run_handoff: hasHandoff,
+      checklist_done: stats.done,
+      checklist_open: stats.open
+    },
+    evidence: {
+      state_file: ".kit/run-state.json",
+      report_file: null
+    },
+    generated_at: new Date().toISOString()
+  };
+  const reportRel = `.test/ai/reports/run-closure-${todayStamp()}-${stableTimestamp()}.json`;
+  payload.evidence.report_file = reportRel;
+  writeJsonFile(path.join(cwd, ".kit", "run-state.json"), payload);
+  writeJsonFile(path.join(cwd, reportRel), payload);
+  if (args.json) {
+    console.log(JSON.stringify(payload, null, 2));
+  } else {
+    console.log(`/kit-run state: ${payload.status}`);
+    console.log(`state: ${payload.state}`);
+    console.log(`next: ${payload.required_next_command}`);
+    console.log(`report: ${reportRel}`);
+  }
+  process.exit(payload.status === "PASS" ? 0 : 2);
+}
+
+function handleCheckCommand(args) {
+  const cwd = path.resolve(args.cwd);
+  const statePath = path.join(cwd, ".kit", "run-state.json");
+  const runState = fs.existsSync(statePath) ? parseJsonFile(cwd, ".kit/run-state.json") : null;
+  const baseReport = buildReport(args);
+  const hasRunClosure = runState?.state === "run-closed";
+  const decision = !hasRunClosure ? "block" : (baseReport.p0.length > 0 || baseReport.p1.length > 0 ? "fix" : "go");
+  const payload = {
+    schema_version: 1,
+    command: "/kit-check",
+    cwd,
+    phase: "check",
+    status: decision === "go" ? "PASS" : "BLOCKED",
+    decision,
+    required_next_command: decision === "go" ? "/kit-test" : (decision === "fix" ? "/kit-run fix <scope>" : "/kit-run start"),
+    gates: {
+      run_closure_present: hasRunClosure,
+      p0_count: baseReport.p0.length,
+      p1_count: baseReport.p1.length,
+      p2_count: baseReport.p2.length
+    },
+    evidence: {
+      state_file: ".kit/check-state.json",
+      report_file: null
+    },
+    generated_at: new Date().toISOString()
+  };
+  const reportRel = `.test/ai/reports/kit-check-${todayStamp()}-${stableTimestamp()}.json`;
+  payload.evidence.report_file = reportRel;
+  writeJsonFile(path.join(cwd, ".kit", "check-state.json"), payload);
+  writeJsonFile(path.join(cwd, reportRel), payload);
+  if (args.json) {
+    console.log(JSON.stringify(payload, null, 2));
+  } else {
+    console.log(`/kit-check decision: ${payload.decision}`);
+    console.log(`next: ${payload.required_next_command}`);
+    console.log(`report: ${reportRel}`);
+  }
+  process.exit(decision === "go" ? 0 : 2);
+}
+
 try {
   const args = parseArgs(process.argv);
   if (args.command === "--help" || args.command === "-h" || (!args.command && args.help)) {
@@ -2400,8 +2510,8 @@ try {
     if (args.help) {
       console.log("spec-loop-kit run — /kit-run 的执行层助手");
       console.log("");
-      console.log("此命令打印运行模式参考并验证编码前准备状态.");
-      console.log("它不执行代码；而是引导 AI 阅读 modes/run.md 和 quality/pre-code.md.");
+      console.log("此命令验证编码前准备状态，并写入 .kit/run-state.json 与 Run Closure JSON 报告.");
+      console.log("它不替 AI 写业务代码；它提供可复核的 run phase 状态机证据.");
       console.log("");
       console.log("编码前门控:");
       console.log("  1. 研究技术栈 (查阅官方文档，不要猜测 API).");
@@ -2430,10 +2540,7 @@ try {
       console.log("  5. 新日志/告警验证真实路径触发.");
       process.exit(0);
     }
-    // Print reference and exit; actual execution is handled by the AI reading modes/run.md
-    console.log("运行模式参考已加载. AI 应阅读 modes/run.md 和 quality/pre-code.md 获取完整行为.");
-    console.log("使用 --help 查看门控和检查的快速参考.");
-    process.exit(0);
+    handleRunCommand(args);
   } else if (args.command === "check") {
     if (args.help) {
       console.log("spec-loop-kit check — /kit-check 的质量层助手");
@@ -2465,9 +2572,7 @@ try {
       console.log("  - 最大轮数: 默认 3, 可配置");
       process.exit(0);
     }
-    console.log("检查模式参考已加载. AI 应阅读 modes/check.md 和 quality/ 获取完整行为.");
-    console.log("使用 --help 查看飞轮和检查清单的快速参考.");
-    process.exit(0);
+    handleCheckCommand(args);
   } else if (args.command === "loop") {
     if (args.help) {
       console.log("spec-loop-kit loop — /kit-loop 的自动巡航助手");
