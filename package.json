@@ -46,6 +46,7 @@
     "knowledge",
     "modes",
     "quality",
+    ".npmignore",
     ".kit/config.json",
     ".kit/version.json",
     ".test/README.md",
