@@ -72,7 +72,7 @@ docs/
 
 `validate` 不修改项目文件。存在 P0 时返回非零退出码；只有 P1/P2 时会报告风险但允许继续。`audit --json` 输出给 Codex、Claude Code、OpenCode、WorkBuddy 等工具读取。
 
-`validate` 面向被 KIT 初始化的项目，不是 `kit-skills` 包本身的自检命令。包自检用 `npm run check`、`quick_validate.py`、`npm pack --dry-run`。
+普通 `validate --profile auto` 面向被 KIT 初始化的项目。`kit-skills` 包本身的自检使用 `audit --profile skill-package`，并配合 `npm run check`、`npm run check:contract`、`npm run check:self-audit`、`npm pack --dry-run`。
 
 fresh init 后如果只剩 `P1 prd-placeholders`，这是正常建档前状态。意思是产品事实还没写，不是 helper 挂了。
 

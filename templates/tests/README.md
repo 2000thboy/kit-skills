@@ -14,5 +14,5 @@ tests/
 ## 规则
 
 - 传统测试代码放在此处 — 框架会自动发现
-- 不要在此处存放 AI 生成的证据 — 证据应放入 `evals/evidence/` 或 `docs/evidence/`
-- 不要使用 `.test/` — 该目录为隐藏目录，会导致框架无法发现测试
+- 不要在此处存放 AI 生成的证据 — 证据应放入 `evals/evidence/`、`.test/ai/evidence/` 或 `docs/evidence/`
+- 不要把框架测试代码放进 `.test/` — 该目录为隐藏目录，会导致框架无法发现测试；`.test/` 只用于测试包、验收材料、报告和证据

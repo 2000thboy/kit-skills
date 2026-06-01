@@ -7,6 +7,16 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "..");
 const templates = path.join(root, "templates");
+const DEFAULT_MAX_FILES_TO_SCAN = 5000;
+const DEFAULT_MAX_SCAN_DEPTH = 16;
+
+function readPositiveIntEnv(name, fallback) {
+  const value = Number.parseInt(process.env[name] || "", 10);
+  return Number.isFinite(value) && value > 0 ? value : fallback;
+}
+
+const MAX_FILES_TO_SCAN = readPositiveIntEnv("SPEC_LOOP_KIT_MAX_FILES_TO_SCAN", DEFAULT_MAX_FILES_TO_SCAN);
+const MAX_SCAN_DEPTH = readPositiveIntEnv("SPEC_LOOP_KIT_MAX_SCAN_DEPTH", DEFAULT_MAX_SCAN_DEPTH);
 
 // Graceful interruption: ensure partial writes are not left behind
 process.on("SIGINT", () => {
@@ -425,27 +435,62 @@ function findWorkflowEntries(cwd) {
   ].filter((rel) => exists(cwd, rel));
 }
 
-function parseJsonFile(cwd, rel) {
+function parseJsonFile(cwd, rel, report = null, severity = "p1") {
   const text = readText(cwd, rel);
   if (!text) return null;
   try {
     return JSON.parse(text);
-  } catch {
+  } catch (error) {
+    if (report) {
+      addIssue(
+        report,
+        severity,
+        "invalid-json",
+        `${rel} 不是有效 JSON: ${error.message}`,
+        rel,
+        "修复 JSON 语法，避免 KIT 状态或版本合同被静默忽略."
+      );
+    }
     return null;
   }
 }
 
-function listFilesRecursive(dir) {
+function listFilesRecursive(dir, options = {}) {
   if (!fs.existsSync(dir)) return [];
-  const entries = fs.readdirSync(dir, { withFileTypes: true });
+  const state = options.state || { count: 0, truncated: false };
+  const depth = options.depth || 0;
+  const maxFiles = options.maxFiles || MAX_FILES_TO_SCAN;
+  const maxDepth = options.maxDepth || MAX_SCAN_DEPTH;
+  if (state.count >= maxFiles || depth > maxDepth) {
+    state.truncated = true;
+    return [];
+  }
+  let entries = [];
+  try {
+    entries = fs.readdirSync(dir, { withFileTypes: true });
+  } catch {
+    return [];
+  }
   const files = [];
   for (const entry of entries) {
+    if (state.count >= maxFiles) {
+      state.truncated = true;
+      break;
+    }
     const fullPath = path.join(dir, entry.name);
     if (entry.isDirectory()) {
-      files.push(...listFilesRecursive(fullPath));
+      if (depth >= maxDepth) {
+        state.truncated = true;
+      } else {
+        files.push(...listFilesRecursive(fullPath, { ...options, state, depth: depth + 1 }));
+      }
     } else {
+      state.count += 1;
       files.push(fullPath);
     }
+  }
+  if (!options.state && state.truncated && typeof options.onLimit === "function") {
+    options.onLimit({ maxFiles, maxDepth });
   }
   return files;
 }
@@ -504,8 +549,21 @@ function isScannableTextFile(rel) {
   ].includes(ext);
 }
 
-function scanTextFiles(cwd) {
-  return listFilesRecursive(cwd)
+function scanTextFiles(cwd, report = null) {
+  return listFilesRecursive(cwd, {
+    onLimit: ({ maxFiles, maxDepth }) => {
+      if (report) {
+        addIssue(
+          report,
+          "p1",
+          "scan-limit-reached",
+          `文件扫描达到上限: max_files=${maxFiles}, max_depth=${maxDepth}.`,
+          cwd,
+          "缩小检查范围，或通过 SPEC_LOOP_KIT_MAX_FILES_TO_SCAN / SPEC_LOOP_KIT_MAX_SCAN_DEPTH 显式提高上限."
+        );
+      }
+    }
+  })
     .map((file) => ({
       file,
       rel: path.relative(cwd, file)
@@ -528,9 +586,9 @@ function summarizeMatches(matches, max = 5) {
   }).join(", ");
 }
 
-function collectPatternMatches(cwd, patterns) {
+function collectPatternMatches(cwd, patterns, report = null) {
   const grouped = new Map();
-  for (const { file, rel } of scanTextFiles(cwd)) {
+  for (const { file, rel } of scanTextFiles(cwd, report)) {
     let text = "";
     try {
       text = fs.readFileSync(file, "utf8");
@@ -942,7 +1000,7 @@ function checkHardcodedAssumptions(cwd, report) {
       fix: "固定模型或记录别名解析、升级策略和重新验证触发器到 Model / Agent Risk Ledger."
     }
   ];
-  const matches = collectPatternMatches(cwd, patterns);
+  const matches = collectPatternMatches(cwd, patterns, report);
   report.evidence.hardcoded_assumptions = matches.map((item) => ({
     code: item.code,
     count: item.matches.length,
@@ -963,22 +1021,22 @@ function checkHardcodedAssumptions(cwd, report) {
 }
 
 function checkVersionContract(cwd, report) {
-  const version = parseJsonFile(cwd, ".kit/version.json");
+  const version = parseJsonFile(cwd, ".kit/version.json", report);
   if (!version) {
     addIssue(report, "p1", "missing-version-contract", "缺少或无效的 .kit/version.json.", ".kit/version.json", "创建 .kit/version.json 并保持 project_version 与 package.json, AGENTS.md, git 标签和发布说明一致.");
     return;
   }
 
   const projectVersion = version.project_version;
-  const pkg = parseJsonFile(cwd, "package.json");
+  const pkg = parseJsonFile(cwd, "package.json", report);
   if (pkg?.version && projectVersion && pkg.version !== projectVersion) {
     addIssue(report, "p1", "version-mismatch-package", `package.json 版本 (${pkg.version}) 与 .kit/version.json (${projectVersion}) 不一致.`, "package.json / .kit/version.json", "在同一次发布变更中更新两个文件.");
   }
-  const kitConfig = parseJsonFile(cwd, ".kit/config.json");
+  const kitConfig = parseJsonFile(cwd, ".kit/config.json", report);
   if (kitConfig?.project_version && projectVersion && kitConfig.project_version !== projectVersion) {
     addIssue(report, "p1", "version-mismatch-kit-config", `.kit/config.json 版本 (${kitConfig.project_version}) 与 .kit/version.json (${projectVersion}) 不一致.`, ".kit/config.json / .kit/version.json", "同时更新状态快照和版本契约.");
   }
-  const testConfig = parseJsonFile(cwd, ".test/config.json");
+  const testConfig = parseJsonFile(cwd, ".test/config.json", report);
   if (testConfig?.project_version && projectVersion && testConfig.project_version !== projectVersion) {
     addIssue(report, "p1", "version-mismatch-test-config", `.test/config.json 版本 (${testConfig.project_version}) 与 .kit/version.json (${projectVersion}) 不一致.`, ".test/config.json / .kit/version.json", "同时更新测试包版本和 KIT 版本契约.");
   }
@@ -1395,9 +1453,9 @@ function checkArchiveCleanup(cwd, report) {
 }
 
 function checkRuntimeIndexSync(cwd, report) {
-  const version = parseJsonFile(cwd, ".kit/version.json");
-  const config = parseJsonFile(cwd, ".kit/config.json");
-  const runtimeIndex = parseJsonFile(cwd, ".kit/case-runtime-index.json");
+  const version = parseJsonFile(cwd, ".kit/version.json", report);
+  const config = parseJsonFile(cwd, ".kit/config.json", report);
+  const runtimeIndex = parseJsonFile(cwd, ".kit/case-runtime-index.json", report, "p2");
 
   // Check version consistency across .kit/ files
   const versions = [];
@@ -1520,7 +1578,7 @@ function checkSkillPackage(cwd, report) {
     }
   }
 
-  const pkg = parseJsonFile(cwd, "package.json");
+  const pkg = parseJsonFile(cwd, "package.json", report, "p0");
   if (!pkg) {
     addIssue(report, "p0", "invalid-package-json", "package.json 缺失或无效.", "package.json", "发布前修复包元数据.");
   } else {
@@ -1536,9 +1594,23 @@ function checkSkillPackage(cwd, report) {
       }
     }
     const files = Array.isArray(pkg.files) ? pkg.files : [];
-    for (const rel of ["SKILL.md", "README.md", "AGENTS.md", "CLAUDE.md", "LICENSE", "agents", "bin", "scripts", "templates", "knowledge", ".kit", ".test"]) {
-      if (!files.includes(rel)) {
-        addIssue(report, "p1", "package-files-missing-entry", `package.json files 未包含 ${rel}.`, "package.json", "包含可移植 skill 包所需的所有文件.");
+    const requiredFileGroups = [
+      ["SKILL.md"],
+      ["README.md"],
+      ["AGENTS.md"],
+      ["CLAUDE.md"],
+      ["LICENSE"],
+      ["agents"],
+      ["bin"],
+      ["scripts"],
+      ["templates"],
+      ["knowledge"],
+      [".kit", ".kit/config.json"],
+      [".test", ".test/README.md"]
+    ];
+    for (const group of requiredFileGroups) {
+      if (!group.some((rel) => files.includes(rel))) {
+        addIssue(report, "p1", "package-files-missing-entry", `package.json files 未包含 ${group[0]} 或等效入口.`, "package.json", "包含可移植 skill 包所需的所有文件.");
       }
     }
     if (!pkg.repository || !pkg.homepage || !pkg.bugs) {

@@ -17,14 +17,14 @@ KIT v2.0 提供八个命令，覆盖产品到开发的完整闭环：
 /kit-run    → 执行层（编码 / 测试 / 运行）— 必须经用户确认后才能启动
 /kit-check  → 质量层（检查 / 研究 / 规划）
 /kit-loop   → 自动巡航（自我迭代 / 时间盒）
-/kit-pack   → 打包层（封装 / 分享 / 生成沙盒）
-/kit-test   → 验收层（边界确认 / 核心打包 / 测试报告）
+/kit-pack   → 交付打包层（清理 / 封装 / 生成 V1 可分享交付包）
+/kit-test   → 验收层（边界确认 / 临时验收包 / 验收测试 / 测试报告）
 ```
 
 飞轮：
 
 ```
-/kit-new → /kit brainstorm → /kit-run start → /kit-check diff → [用户确认] → 修复 → 回归 → /kit test → /kit pack → /kit archive
+/kit-new → /kit brainstorm → /kit-run start → /kit-check diff → [用户确认] → 修复 → 回归 → /kit-test → /kit-pack → /kit archive
          ↑______________________________________________________________________________________________↓
          └────────────────────────────────── /kit-status 检查方向 ───────────────────────────────────────┘
 ```
@@ -34,8 +34,8 @@ KIT v2.0 提供八个命令，覆盖产品到开发的完整闭环：
 - brainstorm：先聊清产品方向。
 - 建档：生成根目录 `README.md`、宿主入口、`.plan/PRD.md`、`.plan/SPEC.md`、`.plan/CHECKLIST.md`、`.kit/`、`.workflow/`、`.test/`。
 - 归档：整理历史计划、证据、旧流程文件。
-- 打包 (`/kit-pack`)：封装可分享沙盒，清理临时文件，保留核心代码+README+证据。
-- 验收 (`/kit-test`)：确认版本边界清晰，打包核心代码+README，运行验收测试并生成报告。
+- 打包 (`/kit-pack`)：在验收通过后封装 V1 可分享交付包，清理临时文件，保留核心代码、README、必要证据和版本信息。
+- 验收 (`/kit-test`)：确认版本边界清晰，生成临时验收包，运行验收测试并生成报告。
 - 漂移检查：新需求和旧目标冲突时先提醒。
 - 验收证据：记录谁执行、怎么验、证据在哪、哪里必须停。
 - 规模感知：自动推断 quick/standard/deep，用户可覆盖。
@@ -436,9 +436,11 @@ node C:\tools\kit-skills\bin\spec-loop-kit.mjs init --cwd D:\projects\my-claude-
 - `.workflow/`：统一管理当前可恢复入口、host preset、流程说明、脚本和历史 workflow 合同。
 - `docs/`：只放架构、UI/UX 等稳定说明，不再放测试包和 workflow。
 - `README.md`：只放根目录，作为用户和仓库首页入口。不要新建 `.plan/README.md`。
-- `.test/`：放测试包。它在项目根目录，不进源码目录。
+- `.test/`：放测试包、验收包、交付证据和用户反馈。它在项目根目录，不进源码目录，也不放框架自动发现的测试代码。
 - `.test/ai/`：AI 自检、dry-run、打包证明、自动化日志。
 - `.test/user/`：给真实用户的测试包、安装说明、验收表、反馈表和用户返回证据。
+- `tests/`：框架自动发现的单元、集成、端到端测试代码。
+- `evals/`：AI 全程序自测配置、运行脚本、报告和过程证据。
 - AI 模拟用户仍然算 `.test/ai/`，不算 `.test/user/`。
 - 不允许新建根目录 `output/` 或 `outputs/` 当测试包；SuperDev 或老脚本留下的 `output/` 只能当迁移输入，归档时归类进 `.test/ai/`、`.test/user/` 或 `.plan/archive/`。
 - 大日志、大模型输出、命令流水不要塞进聊天上下文；原始证据进 `.test/ai/evidence/`，报告只写摘要和路径。
@@ -605,25 +607,27 @@ AI 不得因”快点”、”直接做”跳过头脑风暴和确认门。
 
 ## 打包与验收
 
-### `/kit-pack` — 打包分享
+### `/kit-pack` — V1 交付打包
 
-当用户说"打包"、"pack"、"封装"时使用。目的是生成一个可分享的沙盒或测试包。
+当用户说"打包"、"pack"、"封装"、"交付 V1"时使用。目的是在 `/kit-test` 验收通过后，生成一个明确可交付、可分享、可安装或可复用的 V1 交付包。
 
 **强制确认门**：
 
 ```text
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-/kit-pack 打包确认
+/kit-pack V1 交付打包确认
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 打包范围:
   • 核心代码: src/, bin/, modes/ 等
   • 文档: README.md, SKILL.md, AGENTS.md/CLAUDE.md
-  • 证据: .test/ai/evidence/, .test/ai/reports/
+  • 必要证据: 验收报告、关键截图/日志索引、版本信息
   • 版本: .kit/version.json
 
 排除项:
   • 临时文件: logs/, .omc/, .pilotdeck-runtime/
+  • 历史测试包: .test/ai/packages/
+  • 临时验收包: {project-name}-test-YYYYMMDD/
   • 敏感信息: .env, secrets, API keys
   • 开发依赖: node_modules/, __pycache__/, .venv/
 
@@ -634,7 +638,7 @@ AI 不得因”快点”、”直接做”跳过头脑风暴和确认门。
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
-**输出**：`{project-name}-pack-YYYYMMDD/` 目录或 `{project-name}-pack-YYYYMMDD.zip`
+**输出**：`{project-name}-v1-YYYYMMDD/` 目录或 `{project-name}-v1-YYYYMMDD.zip`
 
 ### `/kit-test` — 验收测试
 
@@ -653,7 +657,7 @@ AI 不得因”快点”、”直接做”跳过头脑风暴和确认门。
   • 是否有已知阻塞项？
 
 验收内容:
-  • 打包核心代码 + README
+  • 生成临时验收包（核心代码 + README + 验收说明）
   • 运行验收测试（按 .plan/CHECKLIST.md 验收标准）
   • 生成测试报告
 
@@ -664,7 +668,7 @@ AI 不得因”快点”、”直接做”跳过头脑风暴和确认门。
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
-**输出**：`.test/ai/reports/acceptance-YYYYMMDD.md` + 验收证据
+**输出**：临时目录 `{project-name}-test-YYYYMMDD/` + `.test/ai/reports/acceptance-YYYYMMDD.md` + 验收证据。验收失败时不得进入 `/kit-pack`。
 
 ## 归档前确认
 

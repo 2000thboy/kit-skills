@@ -41,7 +41,7 @@ Use `knowledge/question-bank.json` IDs instead of pasting repeated questions:
 
 | 场景 | 触发词 | 处理流程 |
 |------|--------|---------|
-| **从头开始** | "用 kit-skills 帮我开发 xxx" / "新建项目" / "建档" | Brainstorm → 分类 → 生成三件套 → **用户确认** → kitrun |
+| **从头开始** | "用 kit-skills 帮我开发 xxx" / "新建项目" / "建档" | Brainstorm → 分类 → 生成三件套 → **用户确认** → `/kit-run` |
 | **中间介入** | "继续按 kit-skills 流程开发" / "继续" / "接着做" | **检查当前状态** → 如有漂移 → **Brainstorm 到用户足够清楚** → **PLAN 确认** → 才能继续 |
 
 ### 规则优先级（Rule Priority）
@@ -427,7 +427,7 @@ evals/                   # AI full-program self-test (on-demand)
 ### 三件套生成流程（带确认门）
 
 ```
-Brainstorm 完成 → 分类确认(scale) → 生成 PRD → PM Audit → Spec Self-Review → YAGNI 门 → 用户确认 → 生成 SPEC → PM Audit → Spec Self-Review → YAGNI 门 → 用户确认 → 生成 CHECKLIST → PM Audit → Spec Self-Review → YAGNI 门 → 用户确认 → kitrun
+Brainstorm 完成 → 分类确认(scale) → 生成 PRD → PM Audit → Spec Self-Review → YAGNI 门 → 用户确认 → 生成 SPEC → PM Audit → Spec Self-Review → YAGNI 门 → 用户确认 → 生成 CHECKLIST → PM Audit → Spec Self-Review → YAGNI 门 → 用户确认 → `/kit-run`
 ```
 
 **Scale-Aware 确认门:**
@@ -738,7 +738,7 @@ For coding beginners, cleanup output must not only list files. It must explain t
 
 ---
 
-## 3. 打包: Pack For Sharing Or Testing
+## 3. 打包: Pack V1 For Delivery
 
 Use this track when the user says:
 
@@ -746,9 +746,14 @@ Use this track when the user says:
 - pack
 - 封装
 - 生成分享包
-- 生成测试包
+- 交付 V1
+- 生成可分享交付包
 
 ### Pack Process（带用户确认门）
+
+`/kit-pack` is the delivery packaging layer. It runs after `/kit-test` acceptance has passed, or after the user explicitly accepts the remaining risk. It creates the V1 package that can be shared, installed, reviewed, or handed off.
+
+It is not the acceptance-test package. Temporary validation packages belong to `/kit-test`.
 
 **Step 1: 用户确认门**
 
@@ -756,17 +761,19 @@ Before packing, present to the user:
 
 ```text
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-/kit-pack 打包确认
+/kit-pack V1 交付打包确认
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 打包范围:
   • 核心代码: src/, bin/, modes/ 等
   • 文档: README.md, SKILL.md, AGENTS.md/CLAUDE.md
-  • 证据: .test/ai/evidence/, .test/ai/reports/
+  • 必要证据: 验收报告、关键截图/日志索引、版本信息
   • 版本: .kit/version.json
 
 排除项（自动清理）:
   • 临时文件: logs/, .omc/, .pilotdeck-runtime/
+  • 历史测试包: .test/ai/packages/
+  • 临时验收包: {project-name}-test-YYYYMMDD/
   • 敏感信息: .env, secrets, API keys
   • 开发依赖: node_modules/, __pycache__/, .venv/
 
@@ -779,12 +786,21 @@ Before packing, present to the user:
 
 **Step 2: 清理临时文件**
 
+Do not copy-paste destructive cleanup commands blindly. First run a dry preview and confirm all matched paths are generated caches, dependencies, or temporary outputs. If any matched path may contain user work, stop and ask.
+
 ```bash
-# 清理开发临时文件
+# Preview first. Review every path before deleting.
+find logs .omc .pilotdeck-runtime .pytest_cache node_modules __pycache__ .venv -maxdepth 0 -print 2>/dev/null
+
+# Delete only after user confirmation and path review.
 rm -rf logs/ .omc/ .pilotdeck-runtime/ .pytest_cache/
 rm -rf node_modules/ __pycache__/ .venv/
-rm -f .env secrets.json *.key *.pem
+
+# Do not delete secrets silently. Move them out of the package or leave them excluded.
+find . -maxdepth 1 \( -name ".env*" -o -name "secrets.json" -o -name "*.key" -o -name "*.pem" -o -name "credentials.json" \) -print
 ```
+
+Windows PowerShell equivalent must use `Get-ChildItem` / `Remove-Item -LiteralPath` after the same path review. Never build a delete command by string-concatenating discovered paths.
 
 **Step 3: 验证核心文件存在**
 
@@ -797,7 +813,7 @@ ls README.md .kit/version.json
 **Step 4: 生成打包输出**
 
 ```text
-{project-name}-pack-YYYYMMDD/
+{project-name}-v1-YYYYMMDD/
   src/                    # 核心源代码
   bin/                    # 可执行脚本（如有）
   modes/                  # 模式定义（如有）
@@ -807,8 +823,8 @@ ls README.md .kit/version.json
   README.md               # 项目说明
   SKILL.md / AGENTS.md / CLAUDE.md  # 宿主入口
   .kit/version.json       # 版本合同
-  .test/ai/evidence/      # 测试证据（可选）
-  .test/ai/reports/       # 测试报告（可选）
+  .test/ai/reports/acceptance-*.md  # 验收报告索引（可选）
+  .test/ai/evidence/      # 关键证据索引（可选，避免打入大日志）
   pack-manifest.json      # 打包清单
 ```
 
@@ -818,7 +834,7 @@ ls README.md .kit/version.json
   "project": "{project-name}",
   "version": "x.y.z",
   "pack_date": "YYYY-MM-DD",
-  "pack_type": "share | test",
+  "pack_type": "delivery-v1",
   "included": ["src/", "README.md", "..."],
   "excluded": ["logs/", "node_modules/", "..."],
   "verified_by": "AI | user",
@@ -829,9 +845,12 @@ ls README.md .kit/version.json
 ### Pack Gate Rules
 
 - **必须经用户确认后才能打包。** 用户说"打包"不等于确认，必须得到"确认"。
+- **默认要求验收先通过。** 若 `/kit-test` 未通过或未运行，必须在打包确认中标明风险；没有用户明确接受风险时不得生成 V1 交付包。
 - **敏感信息必须排除。** `.env`、API key、账号材料不得进入打包输出。
 - **临时文件必须清理。** 开发日志、缓存、依赖目录不得进入打包输出。
 - **核心文件必须存在。** README.md 和版本文件缺失时暂停打包，先补充。
+- **历史测试包不得进入交付包。** `.test/ai/packages/**` 是测试过程材料，不是 V1 交付内容。
+- **破坏性清理必须先预览。** `rm -rf` / `Remove-Item -Recurse` 只能在路径预览、用户确认、且目标限定在项目工作区后执行。
 
 ---
 
@@ -865,7 +884,7 @@ Use this track when the user says:
   • 是否有已知阻塞项？
 
 验收内容:
-  • 打包核心代码 + README
+  • 生成临时验收包（核心代码 + README + 验收说明）
   • 按 .plan/CHECKLIST.md 验收标准运行测试
   • 生成验收测试报告
 
@@ -876,9 +895,9 @@ Use this track when the user says:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
-**Step 2: 打包核心代码 + README**
+**Step 2: 生成临时验收包**
 
-同 `/kit-pack` 的清理和验证步骤，但输出到临时目录 `{project-name}-test-YYYYMMDD/`。
+复用 `/kit-pack` 的清理和验证思路，但只输出到临时目录 `{project-name}-test-YYYYMMDD/`。该目录用于验收执行，不是 V1 交付包。
 
 **Step 3: 运行验收测试**
 
@@ -919,7 +938,7 @@ Use this track when the user says:
 
 - **必须经用户确认后才能验收。** 用户说"test"不等于确认，必须得到"确认"。
 - **版本未完成时拒绝验收。** 如 `.plan/CHECKLIST.md` 有未完成核心任务，返回 `/kit-run`。
-- **验收失败时停止交付。** 报告失败项，返回修复流程。
+- **验收失败时停止交付。** 报告失败项，返回修复流程，不得进入 `/kit-pack`。
 - **验收通过后生成报告。** 报告写入 `.test/ai/reports/`，作为交付证据。
 
 ---
@@ -1159,7 +1178,7 @@ D:\dev-projects\gal-dev-v0.01-uat\
        ↓  User acceptance passes
    User evidence merged into project/docs/evidence/
    ```
-4. `project-eval/` can be destroyed and recreated at any time (`rm -rf` + re-clone).
+4. `project-eval/` can be destroyed and recreated only after confirming it has no unmerged user work. Use a dry path review before removal, then re-clone from the approved source.
 5. `project-uat/` is created from a stable git tag, ensuring the user tests exactly what was approved.
 
 **Mandatory reminder after AI self-test**:
@@ -1183,7 +1202,7 @@ When AI self-test passes, AI **must** remind the user:
 1. Update `.kit/config.json`: stage, progress, completed_tasks, next_tasks, blockers, snapshot_hash, last_updated
 2. If session was interrupted mid-task: Write `.kit/interrupted/YYYY-MM-DD-<topic>.md`
 3. If key decisions were made: Append to `.kit/decisions.md` with timestamp and decision summary
-4. If blockers were encountered: Update `.kit/blockers.json` (for non-loop sessions) or append to `.cron/logs/YYYY-MM-DD/blocker-<timestamp>.md` (for `/kit-loop` sessions, per `modes/loop.md`)
+4. If blockers were encountered: Update `.kit/blockers.json` (for non-loop sessions) or append to `.cron/logs/YYYY-MM-DD/blocker-<timestamp>.md` (for `/kit-loop` sessions, per `modes/loop.md`). If both stores exist, add a one-line pointer in `.kit/blockers.json` to the loop log path so status views can find it without merging loop state into session state.
 
 **Session Interruption Recovery**:
 - Mid-session topic changes are recorded as interruptions, not lost
@@ -1209,8 +1228,8 @@ tests/                           # Created on-demand
 
 **Rules**:
 - Put traditional test code here — frameworks will discover it automatically
-- Do not put AI-generated evidence here — evidence goes to `evals/evidence/` or `docs/evidence/`
-- Do not use `.test/` — it is hidden, framework-unfriendly, and breaks CI/CD
+- Do not put AI-generated evidence here — evidence goes to `evals/evidence/`, `.test/ai/evidence/`, or `docs/evidence/` depending on the project contract.
+- Do not put framework test code in `.test/`; it is hidden and framework-unfriendly. `.test/` is for packages, acceptance materials, reports, and evidence.
 
 ### `evals/` AI Self-Test Directory (按需创建)
 
@@ -1328,7 +1347,7 @@ For 建档, report:
 **三件套审查契约（强制）:**
 - PRD 未经用户书面确认 → 不得生成 SPEC（记录违规到 `.kit/audit-log.md`）
 - SPEC 未经用户书面确认 → 不得生成 CHECKLIST（记录违规到 `.kit/audit-log.md`）
-- CHECKLIST 未经用户书面确认 → 不得进入 kitrun（记录违规到 `.kit/audit-log.md`）
+- CHECKLIST 未经用户书面确认 → 不得进入 `/kit-run`（记录违规到 `.kit/audit-log.md`）
 - 违反以上规则视为流程违规，需在报告中明确标注
 
 **例外条款（quick 项目）:**

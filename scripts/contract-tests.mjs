@@ -133,6 +133,32 @@ test("validate json has stable shape and exits 0 without P0", () => {
   assert(Array.isArray(report.p0) && report.p0.length === 0, "expected no P0");
 });
 
+test("invalid json config is reported instead of silently ignored", () => {
+  const project = path.join(tmpRoot, "invalid-json-app");
+  const init = run(["init", "--cwd", project, "--owner", "tester", "--level", "2", "--host", "generic"]);
+  assert(init.code === 0, `init expected exit 0, got ${init.code}: ${init.stderr}`);
+  fs.writeFileSync(path.join(project, ".test", "config.json"), "{ broken json", "utf8");
+  const result = run(["validate", "--cwd", project, "--profile", "auto", "--host", "generic", "--json"]);
+  assert(result.code === 0, `expected exit 0, got ${result.code}: ${result.stderr}`);
+  const report = parseJson(result.stdout, "invalid json validate report");
+  assert(report.p1.some((issue) => issue.code === "invalid-json" && issue.file === ".test/config.json"), "missing invalid-json issue for .test/config.json");
+});
+
+test("scan limits are reported when recursive scan is capped", () => {
+  const project = path.join(tmpRoot, "scan-limit-app");
+  const init = run(["init", "--cwd", project, "--owner", "tester", "--level", "2", "--host", "generic"]);
+  assert(init.code === 0, `init expected exit 0, got ${init.code}: ${init.stderr}`);
+  const result = run(["audit", "--cwd", project, "--profile", "auto", "--host", "generic", "--json"], {
+    env: {
+      SPEC_LOOP_KIT_MAX_FILES_TO_SCAN: "1",
+      SPEC_LOOP_KIT_MAX_SCAN_DEPTH: "1"
+    }
+  });
+  assert(result.code === 0, `expected exit 0, got ${result.code}: ${result.stderr}`);
+  const report = parseJson(result.stdout, "scan limit audit report");
+  assert(report.p1.some((issue) => issue.code === "scan-limit-reached"), "missing scan-limit-reached issue");
+});
+
 test("audit is JSON even without --json", () => {
   const project = path.join(tmpRoot, "generic app");
   const result = run(["audit", "--cwd", project, "--profile", "auto", "--host", "generic"]);
@@ -183,6 +209,9 @@ test("pack dry-run JSON contains portable runtime files", () => {
     ".test/README.md"
   ]) {
     assert(files.has(rel), `package missing ${rel}`);
+  }
+  for (const rel of files) {
+    assert(!rel.startsWith(".test/ai/packages/"), `package includes historical AI test package: ${rel}`);
   }
 });
 

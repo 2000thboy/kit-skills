@@ -1,7 +1,7 @@
 ---
 name: kit-skills
 description: USE WHEN user wants to turn product ideas into structured development plans — brainstorm, 建档 (init project structure), 归档 (archive), or manage PRD/SPEC/CHECKLIST. NOT a code generator. NOT for single-file edits or "just write code" requests.
-argument-hint: "[init|validate|audit|checklist|run|check|loop] [--level 0|1|2|3|4] [--profile auto|generic-project|frontend-ui|long-content-publishing|archive-cleanup|skill-package] [--template default|data-ml|fullstack] [--host auto|generic|codex|claude|opencode|agents] [--owner <name>] [--cwd <path>] [--force] [--json] [--workflow] [--experiment] [--with-test] [--with-eval] [--with-cron] [--with-user] [--with-soul] [--long-task] [--skip-brainstorm]"
+argument-hint: "[/kit|/kit-new|/kit-status|/kit-run|/kit-check|/kit-loop|/kit-pack|/kit-test] or helper: [init|validate|audit|checklist|run|check|loop|sync] [--level 0|1|2|3|4] [--profile auto|generic-project|frontend-ui|long-content-publishing|archive-cleanup|skill-package] [--template default|data-ml|fullstack] [--host auto|generic|codex|claude|opencode|agents] [--owner <name>] [--cwd <path>] [--force] [--json] [--workflow] [--experiment] [--with-test] [--with-eval] [--with-cron] [--with-user] [--with-soul] [--long-task] [--skip-brainstorm]"
 ---
 
 # Kit Skills v2.0
@@ -28,7 +28,7 @@ KIT is not only an archive or cleanup tool. Archiving is one capability. The pri
 
 - 用户要把产品想法、功能需求或模糊目标变成可执行开发计划。
 - 用户需要 PRD/SPEC/CHECKLIST、质量门禁、验收标准或迭代闭环。
-- 用户说 `/kit`、`/kit-run`、`/kit-check`、`/kit-loop`、建档、归档、产品构思、文档驱动开发。
+- 用户说 `/kit`、`/kit-new`、`/kit-status`、`/kit-run`、`/kit-check`、`/kit-loop`、`/kit-pack`、`/kit-test`、建档、归档、产品构思、文档驱动开发。
 - 多文件、多阶段、跨角色协作或容易跑偏的开发任务。
 
 ## When NOT to Use
@@ -52,13 +52,14 @@ KIT is not only an archive or cleanup tool. Archiving is one capability. The pri
 
 ## Command Decision
 
-- **用户只给想法或需求（从头开始）**：用 `/kit` 建档 → brainstorm → 分类 → 生成三件套 → 用户确认 → kitrun
+- **用户只给想法或需求（从头开始）**：用 `/kit-new` 或 `/kit brainstorm` → 分类 → 生成三件套 → 用户确认 → `/kit-run`
 - **用户说"继续按 kit-skills 流程开发"（中间介入）**：**必须先检查当前状态 → 如有漂移先 brainstorm → PLAN 确认 → 才能继续**。不可跳过头脑风暴和确认门。
+- 用户要检查项目状态、方向漂移或归档准备：用 `/kit-status`。
 - 用户要按计划实现：用 `/kit-run`。
 - 用户要审查计划、质量或执行结果：用 `/kit-check`。
 - 用户要持续迭代、修复检查结果或跑闭环：用 `/kit-loop`。
-- **用户说"打包"、"pack"、"封装"**：用 `/kit pack` → **用户确认** → 清理临时文件 → 打包核心代码+README+证据 → 生成可分享沙盒。
-- **用户说"test"、"验收"、"版本已完成"**：用 `/kit test` → **用户确认** → 确认边界清晰 → 打包核心代码+README → 运行验收测试 → 生成测试报告。
+- **用户说"打包"、"pack"、"封装"、"交付 V1"**：用 `/kit-pack` → **用户确认** → 清理临时文件 → 打包核心代码+README+必要证据 → 生成验收通过后的 V1 可交付包。
+- **用户说"test"、"验收"、"版本已完成"**：用 `/kit-test` → **用户确认** → 确认边界清晰 → 生成临时验收包 → 运行验收测试 → 生成测试报告。
 - 用户空输入、只输入 `/kit` 或意图不清：显示 help/usage，并追问一个关键问题。
 
 ## Critical Gates
@@ -101,18 +102,20 @@ Act as a concise toxic PM coach plus careful architect:
 - When architecture choices produce different product outcomes, say so plainly. Do not hide major tradeoffs behind "both are fine".
 - Identify no-return or expensive-return points before implementation, such as framework choice, data model, auth model, content pipeline shape, publishing surface, storage format, and migration path.
 
-## Six-Command Routing
+## Eight-Command Routing
 
-KIT v2.0 uses six commands. All detailed behavior lives in `modes/` and `quality/`.
+KIT v2.0 uses eight user-facing commands. Helper CLI subcommands in `bin/spec-loop-kit.mjs` are implementation aids, not the product command model.
 
 | Command | Purpose | Detailed Spec |
 |---------|---------|---------------|
-| `/kit <subcommand>` | Product layer: brainstorm, init, archive, sandbox | `modes/kit.md` |
+| `/kit <subcommand>` | Product layer: brainstorm, init, archive, sandbox routing | `modes/kit.md` |
+| `/kit-new` | New-project layer: start from zero, classify object, create plan facts | `modes/kit-new.md` |
+| `/kit-status` | Status layer: read-only state, drift, archive readiness | `modes/kit-status.md` |
 | `/kit-run <mode>` | Execution layer: coding, testing, running | `modes/run.md` |
 | `/kit-check <subcommand>` | Quality layer: inspection, research, planning | `modes/check.md` |
 | `/kit-loop <duration>` | Autonomous cruise: self-iterating development | `modes/loop.md` |
-| `/kit-pack` | Packaging layer: clean, verify, pack for sharing/testing | `modes/kit.md` (Pack section) |
-| `/kit-test` | Acceptance layer: boundary check, acceptance test, report | `modes/kit.md` (Test section) |
+| `/kit-pack` | Delivery packaging layer: clean, verify, create the V1 shareable package after acceptance | `modes/kit.md` (Pack section) |
+| `/kit-test` | Acceptance layer: boundary check, temporary acceptance package, tests, report | `modes/kit.md` (Test section) |
 
 ## State Machine
 
@@ -156,26 +159,21 @@ KIT v2.0 uses six commands. All detailed behavior lives in `modes/` and `quality
 
 ```
 +-------------+      +-------------+      +-------------+
-|  /kit-pack  |---->| User confirm |---->| Clean & verify |
-|  (打包分享)  |      |   用户确认   |      |  清理临时文件   |
+|  /kit-test  |---->| User confirm |---->| Acceptance  |
+|  (验收测试)  |      |   用户确认   |      | package/run |
 +-------------+      +-------------+      +------+------+
                                                   |
-+-------------+      +-------------+             v
-|  /kit-test  |---->| User confirm |---->+-------------+
-|  (验收测试)  |      |   用户确认   |     | Pack core   |
-+-------------+      +-------------+     | + README    |
-                                         +------+------+
-                                                |
-                                         +------v------+
-                                         | Run tests   |
-                                         | (按类型)    |
-                                         +------+------+
-                                                |
-                                         +------v------+
-                                         | Generate    |
+                                                  v
+                                         +-------------+
                                          | acceptance  |
                                          | report      |
-                                         +-------------+
+                                         +------+------+
+                                                |
+                                                v
++-------------+      +-------------+      +-------------+
+|  /kit-pack  |---->| User confirm |---->| V1 delivery |
+|  (交付打包)  |      |   用户确认   |      | package     |
++-------------+      +-------------+      +-------------+
 ```
 
 ## File Reference
@@ -234,7 +232,7 @@ When reporting, distinguish:
 ## Workflow
 
 1. Inspect local repo context first: root instructions, tooling files, `.plan/**`, `.kit/**`, `.workflow/**` when present, and `docs/**`.
-2. Decide `/kit`, `/kit-run`, `/kit-check`, or `/kit-loop` explicitly.
+2. Decide `/kit`, `/kit-new`, `/kit-status`, `/kit-run`, `/kit-check`, `/kit-loop`, `/kit-pack`, or `/kit-test` explicitly.
 3. Record whether web/current-doc research is needed. Search current official sources before stack, framework, cloud, API, security, or test-architecture decisions.
 4. If 3+ files will move or change, present a short plan before edits.
 5. Read files before changing them and preserve unrelated user changes.

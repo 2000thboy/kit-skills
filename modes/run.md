@@ -9,9 +9,11 @@ Execution layer: coding, testing, running.
 ```
 /kit-run                       → View current execution status
 /kit-run start                 → Begin execution per SPEC task list
-/kit-run test                  → Run tests
+/kit-run test                  → Run project/framework tests during implementation
 /kit-run smoke                 → Smoke test
 ```
+
+`/kit-run test` is not the same as `/kit-test`. `/kit-run test` runs developer checks for the current implementation task. `/kit-test` is the acceptance layer for version boundary confirmation, temporary acceptance packages, user-facing acceptance tests, and test reports before `/kit-pack`.
 
 ## Responsibilities
 
@@ -112,7 +114,7 @@ Implementation Closure 5-Item ✅
 - Run `--security` mode when code touches: auth, file upload, DB, external API calls
 - Run `--deep` mode before `/kit archive` (final gate)
 - If hedge finds Critical/High issues → block completion, return to fix
-- **Guard**: If `/hedge` skill is not installed, perform a manual self-check using the Vibe Coding 18-item checklist (`modes/check.md`) and record "hedge skipped: skill not found" in `.kit/audit-log.md`
+- **Guard**: If `/hedge` skill is not installed, perform a manual self-check using the Vibe Coding 18-item checklist (`modes/check.md`), record "hedge skipped: skill not found" in `.kit/audit-log.md`, and do not claim final ready/complete until the user explicitly accepts the missing adversarial-check risk.
 
 **Integration with Codex:**
 Before invoking Codex, verify the CLI is available:

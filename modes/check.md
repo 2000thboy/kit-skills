@@ -46,7 +46,8 @@ Merge hedge findings into quality report
 - **Full mode** (`/hedge --deep`): All 7 agents, run on `/kit-check full` or before archive
 - **Security mode** (`/hedge --security`): Security + Vibe agents, run when codebase has API/auth/file ops
 - **Auto-trigger**: When L2 finds `mock`, `fake`, `placeholder`, or security-related keywords → auto-run hedge security scan
-- **Skip condition**: If L1 has >10 P0 findings, skip hedge (fix critical issues first)
+- **Triage condition**: If L1 has >10 P0 findings, do not run full hedge immediately. Run a quick Structure/Boundary hedge on the P0 cluster, fix or report the blocking issues first, then run the normal hedge pass before claiming ready.
+- **Missing hedge guard**: If `/hedge` is unavailable, run the Vibe Coding 18-item checklist manually and mark the report as `adversarial_check: incomplete`. The result cannot be reported as ready unless the user explicitly accepts that risk.
 
 **Hedge Output Merge:**
 - Hedge findings merge into L1/L2/L3 report with prefix `[HEDGE-{agent}]`
@@ -309,6 +310,7 @@ After 3 retries, the task is marked as failed:
   ```
 - Notify user: "任务卡死，已重试3次，请检查权限/资源/网络"
 - Suggest manual diagnostic commands
+- If the failure occurred inside `/kit-loop`, keep the detailed blocker in `.cron/logs/YYYY-MM-DD/` and add only a pointer entry to `.kit/blockers.json` with `source: "kit-loop"` and `log_path`. Do not duplicate the full loop state into `.kit/blockers.json`.
 
 ### Implementation
 

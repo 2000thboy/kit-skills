@@ -14,6 +14,12 @@ Autonomous cruise / self-iterating development mode.
 
 Duration format: `1day`, `2days`, `4hours`, `1week`
 
+Hard limits:
+- Maximum duration: 24 hours unless the user explicitly confirms a longer time box.
+- Maximum loop rounds: default 3, hard maximum 10.
+- Recursion depth: `KIT_LOOP_DEPTH` must not exceed 1. If a loop tries to start another `/kit-loop`, stop and report a blocker.
+- Concurrency: create `.kit/kit.lock` before starting. If the lock exists, stop and ask whether to inspect, resume, or clear the stale lock.
+
 ---
 
 ## Full-Trust Mode Rules (8条)
@@ -46,6 +52,8 @@ Before starting `/kit-loop`, present to the user:
 
 检查点频率: 每 4 小时
 最大轮次: 默认 3（可配置）
+递归限制: KIT_LOOP_DEPTH=1，禁止 loop 内再启动 loop
+并发锁: .kit/kit.lock 存在时不得启动
 回滚策略: 每个检查点前创建 git tag kit-loop-checkpoint-<n>
 
 用户可回复:
@@ -56,6 +64,8 @@ Before starting `/kit-loop`, present to the user:
 ```
 
 **用户必须回复 "确认" 后才启动。** 不接受 "ok", "好的", "行" 等模糊确认。必须是明确的中文 "确认" 或英文 "confirm"。
+
+Before the first task, write `.kit/kit.lock` with mode, start time, scope, log path, and PID/process note. Remove the lock during normal termination. If the process is interrupted, keep the lock and require the next session to inspect it before continuing.
 
 ---
 
@@ -235,6 +245,8 @@ Loop auto-terminates when:
 - All CHECKLIST tasks are complete
 - 3 consecutive blockers occur
 - User does not respond to checkpoint report within 24 hours (configurable)
+- `KIT_LOOP_DEPTH` would exceed 1
+- `.kit/kit.lock` indicates another KIT operation is active
 
 ### 终止后报告
 
@@ -293,12 +305,21 @@ A blocker is any condition that prevents the loop from making progress:
 
 ### Blocker 记录位置
 
-**Important**: `/kit-loop` does **not** write to `.kit/blockers.json`. That file is reserved for heartbeat monitoring (`modes/check.md`) and non-loop session blockers (`modes/kit.md` Session End).
+**Important**: `/kit-loop` keeps detailed blocker reports in `.cron/logs/`. `.kit/blockers.json` is reserved for active status views and non-loop session blockers, so loop entries there must be pointer-only.
 
 Loop blockers are recorded in:
 - `.cron/logs/YYYY-MM-DD/blocker-<timestamp>.md` (detailed report)
 - `.cron/logs/YYYY-MM-DD/kit-loop-<start-time>.log` (log entry)
-- Never in `.kit/blockers.json` — loop blockers must be isolated from heartbeat state to prevent cross-session pollution
+- Optional pointer in `.kit/blockers.json`:
+  ```json
+  {
+    "type": "kit_loop_blocker",
+    "source": "kit-loop",
+    "log_path": ".cron/logs/YYYY-MM-DD/blocker-<timestamp>.md",
+    "timestamp": "YYYY-MM-DDTHH:mm:ssZ"
+  }
+  ```
+- Never duplicate the full loop state in `.kit/blockers.json`; keep loop state isolated to prevent cross-session pollution.
 
 ---
 
