@@ -68,6 +68,12 @@
       "file": "knowledge/kit-priority-workflow.md",
       "keywords": ["kit优先", "新建项目", "检查状态", "宿主记忆", "默认路由", "优先规则"],
       "use_when": "Need to route new-project or status-check requests to kit skills first, before manual file creation or direct coding."
+    },
+    {
+      "id": "path-output-convention",
+      "file": "knowledge/path-output-convention.md",
+      "keywords": ["路径输出", "IDE", "CLI", "路径格式", "环境检测", "Ctrl+点击"],
+      "use_when": "AI needs to output file paths to the user and must choose between IDE-clickable relative paths and CLI-friendly absolute paths."
     }
   ]
 }

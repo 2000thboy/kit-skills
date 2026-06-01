@@ -118,8 +118,15 @@ New project layer: 完全新建，从零建档，输入需求即开始。
 
 ## 输出
 
-- `.plan/PRD.md`（用户确认后）
-- `.plan/SPEC.md`（用户确认后）
-- `.plan/CHECKLIST.md`（用户确认后）
-- `.kit/config.json`
+**文件产出（根据环境输出不同格式路径）：**
+
+| 文件 | IDE 环境输出 | CLI 环境输出 |
+|---|---|---|
+| PRD | `.plan/PRD.md`（可点击） | `{cwd}\.plan\PRD.md`（`cat` 查看） |
+| SPEC | `.plan/SPEC.md`（可点击） | `{cwd}\.plan\SPEC.md`（`cat` 查看） |
+| CHECKLIST | `.plan/CHECKLIST.md`（可点击） | `{cwd}\.plan\CHECKLIST.md`（`cat` 查看） |
+| 配置 | `.kit/config.json`（可点击） | `{cwd}\.kit\config.json`（`cat` 查看） |
+
+**环境未知时：** 先询问用户环境，再输出对应格式。
+
 - 状态简报（建档完成时输出）

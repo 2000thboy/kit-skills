@@ -51,6 +51,9 @@ README.md             → 项目入口
 
 ### Step 2: 输出状态简报
 
+根据用户环境（IDE/CLI）输出不同格式的路径：
+
+**IDE 环境（VS Code/Cursor 等）：**
 ```text
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 /kit-status 项目状态报告
@@ -63,6 +66,12 @@ README.md             → 项目入口
 【进度】
 已完成: {N}/{M} 项 ({X}%)
 核心功能: 已完成 / 进行中 / 未开始
+
+【关键文件】（Ctrl+左键点击打开）
+- 目标: `.plan/PRD.md`
+- 技术方案: `.plan/SPEC.md`
+- 任务进度: `.plan/CHECKLIST.md`
+- 状态快照: `.kit/config.json`
 
 【方向一致性检查】
 PRD 目标: {summary}
@@ -82,6 +91,47 @@ PRD 目标: {summary}
 - ...
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
+
+**CLI 环境（终端/命令行）：**
+```text
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+/kit-status 项目状态报告
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+项目: {project-name}
+版本: {version}
+当前阶段: {stage}
+
+【进度】
+已完成: {N}/{M} 项 ({X}%)
+核心功能: 已完成 / 进行中 / 未开始
+
+【关键文件】
+- 目标: {cwd}\.plan\PRD.md  （查看: `cat {cwd}\.plan\PRD.md`）
+- 技术方案: {cwd}\.plan\SPEC.md  （查看: `cat {cwd}\.plan\SPEC.md`）
+- 任务进度: {cwd}\.plan\CHECKLIST.md  （查看: `cat {cwd}\.plan\CHECKLIST.md`）
+- 状态快照: {cwd}\.kit\config.json  （查看: `cat {cwd}\.kit\config.json`）
+
+【方向一致性检查】
+PRD 目标: {summary}
+当前用户请求: {summary}
+方向漂移: 无 / 轻微 / 中度 / 严重
+
+【阻塞项】
+🔴 严重: {N} 项
+🟠 警告: {N} 项
+🟡 建议: {N} 项
+
+【下一步建议】
+1. ...
+2. ...
+
+【需要你决定】
+- ...
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+**环境未知时：** 先询问用户环境，再输出对应格式。
 
 ### Step 3: 方向漂移检测
 
