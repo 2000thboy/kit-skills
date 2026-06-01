@@ -840,9 +840,8 @@ Do not copy-paste destructive cleanup commands blindly. First run a dry preview 
 # Preview first. Review every path before deleting.
 find logs .omc .pilotdeck-runtime .pytest_cache node_modules __pycache__ .venv -maxdepth 0 -print 2>/dev/null
 
-# Delete only after user confirmation and path review.
-rm -rf logs/ .omc/ .pilotdeck-runtime/ .pytest_cache/
-rm -rf node_modules/ __pycache__/ .venv/
+# Stop here until the user explicitly confirms the previewed paths.
+# After confirmation, delete only the reviewed paths that are inside the project workspace.
 
 # Do not delete secrets silently. Move them out of the package or leave them excluded.
 find . -maxdepth 1 \( -name ".env*" -o -name "secrets.json" -o -name "*.key" -o -name "*.pem" -o -name "credentials.json" \) -print

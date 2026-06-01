@@ -249,6 +249,22 @@ test("commercial, mainland, ui, and four-role review gates are documented", () =
   assert(corpus.includes("self-supervision") || corpus.includes("自我督导"), "missing agent self-supervision gate");
 });
 
+test("delivery cleanup docs do not expose copy-paste destructive delete commands", () => {
+  const docs = [
+    "modes/kit.md",
+    "templates/default/README.md",
+    "templates/fullstack/README.md",
+    "templates/data-ml/README.md",
+    "templates/skill/README.md",
+    "templates/stable-workflow/README.md"
+  ];
+  for (const rel of docs) {
+    const content = fs.readFileSync(path.join(root, rel), "utf8");
+    assert(!/^\s*rm\s+-rf\b/m.test(content), `${rel} exposes rm -rf as a runnable line`);
+    assert(!/^\s*Remove-Item\b.*-Recurse/m.test(content), `${rel} exposes recursive Remove-Item as a runnable line`);
+  }
+});
+
 test("pack dry-run JSON contains portable runtime files", () => {
   const npmCli = process.env.npm_execpath;
   assert(npmCli && fs.existsSync(npmCli), "npm_execpath is unavailable; run this test through npm run check:contract");

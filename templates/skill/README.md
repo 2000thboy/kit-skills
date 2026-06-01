@@ -44,8 +44,10 @@ cp -r {{project_name}}/ {{project_name}}-eval/
 ### 销毁沙盒
 
 ```bash
-# 沙盒可随时销毁重建
-rm -rf {{project_name}}-eval/
+# 沙盒清理必须先预览路径并确认目标在当前工作区内
+pwd
+ls -la {{project_name}}-eval/
+# 确认无未合并修改后，再由用户明确批准删除
 ```
 
 ## 隔离规则

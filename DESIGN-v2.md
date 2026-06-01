@@ -12,8 +12,8 @@
 
 ```
 /kit <subcommand>     → 产品层（建档/归档/脑暴/沙盒）
-/kit-run <mode>       → 执行层（编码/测试/运行）
-/kit-check <subcommand> → 质量层（检查/研究/规划）
+/kit-run <mode>       → 执行层（实现 / 自测 / 修复 / 基础验收）
+/kit-check <subcommand> → 深度审查层（Hedge / 极端场景 / 语义风险 / go-no-go）
 ```
 
 ---
@@ -104,7 +104,7 @@ kit-skills/
 ```
 /kit-run                       → 查看当前执行状态
 /kit-run start                 → 开始执行（按 SPEC 任务列表）
-/kit-run test                  → 运行测试
+/kit-run test                  → 开发期测试和基础验收
 /kit-run smoke                 → 冒烟测试
 ```
 
@@ -137,12 +137,12 @@ kit-skills/
 
 ---
 
-## /kit-check 命令（质量层）
+## /kit-check 命令（深度审查层）
 
 ```
 /kit-check                     → 查看质量状态
-/kit-check full                → 完整质量检查（全项目）
-/kit-check diff                → 增量检查（仅变更部分）
+/kit-check full                → 完整深度审查（全项目 + Hedge）
+/kit-check diff                → 增量深度审查（/kit-run 后的变更）
 /kit-check research "<topic>"  → 深度研究（双引擎）
 /kit-check plan                → 基于检查结果重新规划
 ```
@@ -236,8 +236,8 @@ kit-skills/
 - 心跳监控
 
 新增：
-- /kit-run 执行层（编码门禁 + 前端优先 + 并行）
-- /kit-check 质量层（飞轮 + 发散 + 递归）
+- /kit-run 执行层（实现 + 自测 + 修复 + 基础验收）
+- /kit-check 深度审查层（Hedge + 极端场景 + 语义风险 + go/no-go）
 - quality/ 目录（5 个门禁文件）
 - .kit/quality-patterns.md（质量知识沉淀）
 
@@ -253,7 +253,7 @@ kit-skills/
 
 你想写代码？
   → /kit-run start        （按 SPEC 执行，自动过门禁）
-  → /kit-run test         （运行测试）
+  → /kit-run test         （开发期测试和基础验收）
   → /kit-run smoke        （冒烟测试）
 
 你想检查质量？
