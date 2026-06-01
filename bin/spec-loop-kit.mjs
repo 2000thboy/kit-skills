@@ -279,10 +279,10 @@ function hostEntryFor(host) {
 }
 
 function hostEntryRoleFor(host) {
-  if (host === "claude") return "Claude Code primary instruction file";
-  if (host === "codex") return "Codex primary instruction file";
-  if (host === "opencode") return "OpenCode/agent bridge instruction file";
-  return "generic agent instruction file";
+  if (host === "claude") return "Claude Code 主指令文件";
+  if (host === "codex") return "Codex 主指令文件";
+  if (host === "opencode") return "OpenCode/Agent 桥接指令文件";
+  return "通用 Agent 指令文件";
 }
 
 function detectProfile(cwd, requested) {
@@ -553,6 +553,112 @@ function collectPatternMatches(cwd, patterns) {
   return [...grouped.values()].filter((item) => item.matches.length > 0);
 }
 
+
+function checkNameConsistency(cwd, report) {
+  const folderName = path.basename(cwd);
+
+  let gitRepoName = null;
+  try {
+    const gitConfigPath = path.join(cwd, ".git", "config");
+    if (fs.existsSync(gitConfigPath)) {
+      const gitConfig = fs.readFileSync(gitConfigPath, "utf8");
+      const remoteMatch = gitConfig.match(/\[remote "origin"\][^\[]*?\s*url\s*=\s*([^\n]+)/s);
+      if (remoteMatch) {
+        const url = remoteMatch[1].trim();
+        const repoMatch = url.match(/\/([^\/]+?)(?:\.git)?$/);
+        if (repoMatch) {
+          gitRepoName = repoMatch[1];
+        }
+      }
+    }
+  } catch {
+    // Ignore git read errors
+  }
+
+  let readmeName = null;
+  const readme = readText(cwd, "README.md");
+  const readmeMatch = readme.match(/^#\s+(.+?)(?:\s*[-—|]\s*|\s*$)/m);
+  if (readmeMatch) {
+    readmeName = readmeMatch[1].trim();
+  }
+
+  const names = [];
+  if (folderName) names.push({ source: "文件夹名", name: folderName });
+  if (gitRepoName) names.push({ source: "Git 仓库名", name: gitRepoName });
+  if (readmeName && readmeName !== "{{project_name}}") names.push({ source: "README 标题", name: readmeName });
+
+  if (names.length >= 2) {
+    const normalize = (s) => s.toLowerCase().replace(/[\s\-_]+/g, "");
+    const firstNorm = normalize(names[0].name);
+    const mismatches = names.filter((n) => normalize(n.name) !== firstNorm);
+    if (mismatches.length > 0) {
+      const details = names.map((n) => `${n.source}: "${n.name}"`).join(" | ");
+      addIssue(report, "p1", "name-inconsistency", `项目名称不一致: ${details}`, "README.md / .git/config", "统一文件夹名、Git 仓库名和 README 标题中的项目名称。");
+    }
+  }
+}
+
+function checkSkillFrameworkDeclaration(cwd, report) {
+  const prd = readText(cwd, ".plan/PRD.md");
+  const spec = readText(cwd, ".plan/SPEC.md");
+  const corpus = `${prd}\n${spec}`;
+
+  const isSkill = includesAny(corpus, [
+    "Primary object: skill",
+    "主对象: skill",
+    "主对象 | skill",
+    "对象 | skill",
+    "开发对象 | skill",
+    "skill"
+  ]) || /skill\s*包/.test(corpus) || /skill-package/.test(corpus);
+
+  if (!isSkill) return;
+
+  const readme = readText(cwd, "README.md");
+
+  const hasSkillDeclaration = includesAny(readme, [
+    "这是一个 skill",
+    "这是一个 skill 包",
+    "本 skill",
+    "Skill 包",
+    "skill 包",
+    "可复用 skill",
+    "skill 入口",
+    "skill 定义"
+  ]);
+
+  if (!hasSkillDeclaration) {
+    addIssue(report, "p1", "missing-skill-declaration", "项目被分类为 skill，但 README.md 未明确声明这是一个 skill 包。", "README.md", "在 README.md 中明确说明这是一个可复用的 skill 包，包含 SKILL.md 入口、使用场景和宿主兼容性。");
+  }
+
+  const hasBenchmark = includesAny(readme, [
+    "对标",
+    "benchmark",
+    "参考产品",
+    "同类产品",
+    "类似产品",
+    "竞品"
+  ]);
+
+  const hasFramework = includesAny(readme, [
+    "框架",
+    "规范",
+    "标准",
+    "架构",
+    "framework",
+    "standard",
+    "规范说明"
+  ]);
+
+  if (!hasBenchmark) {
+    addIssue(report, "p2", "missing-skill-benchmark", "Skill 项目的 README.md 缺少对标产品说明。", "README.md", "列出同类或对标产品（如 Claude Skills、Cursor Rules 等），帮助用户理解本 skill 的定位。");
+  }
+
+  if (!hasFramework) {
+    addIssue(report, "p2", "missing-skill-framework", "Skill 项目的 README.md 缺少框架或规范说明。", "README.md", "说明本 skill 遵循的规范、目录结构和设计原则。");
+  }
+}
+
 function checkPmAuditStatus(cwd, report) {
   const auditFiles = [
     { rel: ".kit/pm-audit-prd.md", stage: "PRD" },
@@ -564,7 +670,7 @@ function checkPmAuditStatus(cwd, report) {
       const text = readText(cwd, rel);
       const hasBlocker = /🔴\s*阻断项/.test(text) && !/🔴\s*阻断项.*\n.*\|.*\|.*\|\s*无/.test(text);
       if (hasBlocker) {
-        addIssue(report, "p0", `pm-audit-blocker-${stage.toLowerCase()}`, `PM audit for ${stage} has 🔴 blocker(s).`, rel, "Fix blocker(s) before proceeding to implementation.");
+        addIssue(report, "p0", `pm-audit-blocker-${stage.toLowerCase()}`, `${stage} 的 PM 审计存在 🔴 阻断项.`, rel, "进入实施前修复阻断项.");
       }
       report.evidence.pm_audit = report.evidence.pm_audit || {};
       report.evidence.pm_audit[stage] = { exists: true, hasBlocker };
@@ -585,7 +691,7 @@ function checkUserConfirmation(cwd, report) {
     const text = readText(cwd, rel);
     const confirmed = /✅\s*用户确认/.test(text);
     if (!confirmed) {
-      addIssue(report, "p1", `missing-user-confirmation-${stage.toLowerCase()}`, `${stage} lacks user confirmation marker.`, rel, `Add "✅ 用户确认 | 时间: ... | 版本: ..." at the bottom of ${rel}.`);
+      addIssue(report, "p1", `missing-user-confirmation-${stage.toLowerCase()}`, `${stage} 缺少用户确认标记.`, rel, `在 ${rel} 底部添加 "✅ 用户确认 | 时间: ... | 版本: ...".`);
     }
     report.evidence.user_confirmation = report.evidence.user_confirmation || {};
     report.evidence.user_confirmation[stage] = { confirmed };
@@ -601,56 +707,56 @@ function checkBase(cwd, report) {
     const pmAudit = report.evidence.pm_audit?.[stage];
     const userConfirm = report.evidence.user_confirmation?.[stage];
     if (pmAudit?.hasBlocker && userConfirm?.confirmed) {
-      addIssue(report, "p0", `pm-user-conflict-${stage.toLowerCase()}`, `${stage} has 🔴 PM audit blocker(s) but user already confirmed. Fix blocker(s) before user confirmation is valid.`, `.kit/pm-audit-${stage.toLowerCase()}.md`, "Resolve PM audit 🔴 blocker(s) first, then re-confirm with user.");
+      addIssue(report, "p0", `pm-user-conflict-${stage.toLowerCase()}`, `${stage} 存在 🔴 PM 审计阻断项但用户已确认. 先修复阻断项用户确认才有效.`, `.kit/pm-audit-${stage.toLowerCase()}.md`, "先解决 PM 审计 🔴 阻断项，然后重新与用户确认.");
     }
   }
   for (const rel of [".plan/PRD.md", ".plan/SPEC.md", ".plan/CHECKLIST.md"]) {
     if (!exists(cwd, rel)) {
-      addIssue(report, "p0", "missing-plan-file", `Missing ${rel}`, rel, "Run init or restore the current fact file.");
+      addIssue(report, "p0", "missing-plan-file", `缺少 ${rel}`, rel, "运行 init 或恢复当前事实文件.");
     }
   }
 
   const checklist = readText(cwd, ".plan/CHECKLIST.md");
   if (!checklist.includes("任务列表前置规划")) {
-    addIssue(report, "p0", "missing-task-first-gate", "Checklist lacks 任务列表前置规划.", ".plan/CHECKLIST.md", "Add the blocking task-first planning gate.");
+    addIssue(report, "p0", "missing-task-first-gate", "Checklist 缺少 任务列表前置规划.", ".plan/CHECKLIST.md", "添加阻塞式任务优先规划门.");
   }
   if (!includesAny(checklist, ["stop gate", "Stop gate", "停止门", "验收门", "fanqie-publish"])) {
-    addIssue(report, "p0", "missing-stop-gate", "No explicit stop gate or manual acceptance gate found.", ".plan/CHECKLIST.md", "Record the user/platform/manual acceptance stop gate.");
+    addIssue(report, "p0", "missing-stop-gate", "未找到显式停止门或人工验收门.", ".plan/CHECKLIST.md", "记录用户/平台/人工验收停止门.");
   }
   if (!exists(cwd, ".kit")) {
-    addIssue(report, "p1", "missing-kit-entry", "Missing .kit project status entry.", ".kit", "Create .kit/ or document why this project is not KIT-managed.");
+    addIssue(report, "p1", "missing-kit-entry", "缺少 .kit 项目状态入口.", ".kit", "创建 .kit/ 或记录为何该项目不由 KIT 管理.");
   }
   if (exists(cwd, ".plan/README.md")) {
-    addIssue(report, "p1", "plan-readme-entry-conflict", ".plan/README.md exists, but README belongs at the project root.", ".plan/README.md", "Move user-facing project instructions to root README.md. Keep .plan/ for PRD, SPEC, CHECKLIST, archive, and runs only.");
+    addIssue(report, "p1", "plan-readme-entry-conflict", ".plan/README.md 存在，但 README 应位于项目根目录.", ".plan/README.md", "将面向用户的项目说明移至根目录 README.md. .plan/ 仅用于 PRD, SPEC, CHECKLIST, archive 和 runs.");
   }
   if (!exists(cwd, ".test")) {
-    addIssue(report, "p1", "missing-test-package", "Missing .test/ isolated test package.", ".test", "Create .test/ with ai/ and user/ lanes, README.md, and config.json.");
+    addIssue(report, "p1", "missing-test-package", "缺少 .test/ 隔离测试包.", ".test", "创建 .test/，包含 ai/ 和 user/ 通道, README.md 和 config.json.");
   }
   if (!exists(cwd, ".test/README.md")) {
-    addIssue(report, "p1", "missing-test-readme", "Missing .test/README.md test entry.", ".test/README.md", "Document frontend, skill, CLI/backend, and workflow test routes inside .test/README.md.");
+    addIssue(report, "p1", "missing-test-readme", "缺少 .test/README.md 测试入口.", ".test/README.md", "在 .test/README.md 中记录前端、skill、CLI/后端和 workflow 测试路径.");
   }
   if (!exists(cwd, ".test/config.json")) {
-    addIssue(report, "p1", "missing-test-config", "Missing .test/config.json test package manifest.", ".test/config.json", "Record version plus .test/ai and .test/user roots.");
+    addIssue(report, "p1", "missing-test-config", "缺少 .test/config.json 测试包清单.", ".test/config.json", "记录版本以及 .test/ai 和 .test/user 根目录.");
   }
   for (const rel of [".test/ai", ".test/user", ".test/user/README.md"]) {
     if (!exists(cwd, rel)) {
-      addIssue(report, "p1", "missing-test-lane", `Missing ${rel}.`, rel, "Keep AI self-check artifacts under .test/ai/ and real user testing artifacts under .test/user/.");
+      addIssue(report, "p1", "missing-test-lane", `缺少 ${rel}.`, rel, "AI 自检产物放在 .test/ai/，真实用户测试产物放在 .test/user/.");
     }
   }
   if (exists(cwd, "TESTING.md")) {
-    addIssue(report, "p1", "root-testing-entry-conflict", "Root TESTING.md exists, but KIT test material belongs under .test/.", "TESTING.md", "Move test instructions into .test/README.md and record the change in SPEC/CHECKLIST.");
+    addIssue(report, "p1", "root-testing-entry-conflict", "根目录 TESTING.md 存在，但 KIT 测试材料应位于 .test/ 下.", "TESTING.md", "将测试说明移至 .test/README.md 并在 SPEC/CHECKLIST 中记录变更.");
   }
   checkLooseOutputDirs(cwd, report);
   checkVersionContract(cwd, report);
 
   const prd = readText(cwd, ".plan/PRD.md");
   if (includesAny(prd, ["待补充", "TBD", "TODO"])) {
-    addIssue(report, "p1", "prd-placeholders", "PRD still contains placeholder product facts.", ".plan/PRD.md", "Replace placeholders with target user, goal, scope, and observable acceptance.");
+    addIssue(report, "p1", "prd-placeholders", "PRD 仍包含占位产品事实.", ".plan/PRD.md", "将占位符替换为目标用户、目标、范围和可观察验收标准.");
   }
 
   const spec = readText(cwd, ".plan/SPEC.md");
   if (!includesAny(spec, ["Handoff", "交接", "routed", "路由", "Primary loop", "主循环"])) {
-    addIssue(report, "p1", "missing-handoff-schema", "SPEC does not record routed capability or handoff schema.", ".plan/SPEC.md", "Record owner, routed tool/skill, approval state, evidence path, and fallback.");
+    addIssue(report, "p1", "missing-handoff-schema", "SPEC 未记录路由能力或交接模式.", ".plan/SPEC.md", "记录负责人、路由工具/skill、审批状态、证据路径和回退方案.");
   }
 
   const corpus = readCorpus(cwd);
@@ -667,6 +773,8 @@ function checkBase(cwd, report) {
   checkHardcodedAssumptions(cwd, report);
   checkRuntimeIndexSync(cwd, report);
   checkSandboxArchivePaths(cwd, report);
+  checkNameConsistency(cwd, report);
+  checkSkillFrameworkDeclaration(cwd, report);
 }
 
 function checkLooseOutputDirs(cwd, report) {
@@ -676,9 +784,9 @@ function checkLooseOutputDirs(cwd, report) {
         report,
         "p1",
         "loose-output-dir",
-        `${rel}/ exists at repo root. AI output folders are not a valid KIT test package.`,
+        `${rel}/ 存在于仓库根目录. AI 输出文件夹不是有效的 KIT 测试包.`,
         rel,
-        "Classify it: AI self-check artifacts -> .test/ai/; real user testing material -> .test/user/; stale history -> .plan/archive/. Do not leave output(s)/ as a live root folder."
+        "分类处理: AI 自检产物 -> .test/ai/; 真实用户测试材料 -> .test/user/; 过期历史 -> .plan/archive/. 不要将 output(s)/ 作为活跃根目录保留."
       );
     }
   }
@@ -707,37 +815,37 @@ function checkModelAgentDevelopmentRisks(cwd, report, corpus) {
       report,
       "p1",
       "missing-model-agent-risk-ledger",
-      "Model/Agent development is implied but SPEC does not record a model/agent risk ledger.",
+      "项目涉及 Model/Agent 开发，但 SPEC 未记录 model/agent 风险账本.",
       ".plan/SPEC.md",
-      "Record provider/model version, cost/quota, context/chunk policy, tool permissions, eval data isolation, prompt drift, content safety, evidence retention, and fallback."
+      "记录提供方/模型版本、成本/配额、上下文/分片策略、工具权限、评测数据隔离、提示词漂移、内容安全、证据保留和回退方案."
     );
     return;
   }
 
   const p1RiskChecks = [
-    ["missing-cost-quota-policy", ["cost", "budget", "quota", "rate limit", "rpm", "tpm", "DEFERRED", "限额", "额度", "成本"], "cost/quota/rate-limit policy"],
-    ["missing-context-policy", ["context", "token", "chunk", "truncation", "max_context", "上下文", "分片", "截断"], "context, token, and truncation policy"],
-    ["missing-tool-permission-policy", ["tool permission", "权限", "allowlist", "denylist", "live action", "危险操作", "确认门"], "tool permission and live-action policy"],
-    ["missing-eval-data-isolation", ["eval", "fixture", "golden", "benchmark", ".test/ai/fixtures", "评测"], "eval/fixture data isolation"]
+    ["missing-cost-quota-policy", ["cost", "budget", "quota", "rate limit", "rpm", "tpm", "DEFERRED", "限额", "额度", "成本"], "成本/配额/限速策略"],
+    ["missing-context-policy", ["context", "token", "chunk", "truncation", "max_context", "上下文", "分片", "截断"], "上下文、token 和截断策略"],
+    ["missing-tool-permission-policy", ["tool permission", "权限", "allowlist", "denylist", "live action", "危险操作", "确认门"], "工具权限和实时操作策略"],
+    ["missing-eval-data-isolation", ["eval", "fixture", "golden", "benchmark", ".test/ai/fixtures", "评测"], "评测/fixture 数据隔离"]
   ];
   for (const [code, terms, label] of p1RiskChecks) {
     if (!includesAny(corpus, terms)) {
-      addIssue(report, "p1", code, `Model/Agent risk ledger lacks ${label}.`, ".plan/SPEC.md", `Add ${label}; model/agent projects cannot treat this as decoration.`);
+      addIssue(report, "p1", code, `Model/Agent 风险账本缺少 ${label}.`, ".plan/SPEC.md", `添加 ${label}；model/agent 项目不能将其视为装饰.`);
     }
   }
 
   const p2RiskChecks = [
-    ["missing-model-version-policy", ["model version", "model_version", "model_id", "pinned", "模型版本", "provider", "提供方"], "model/provider version policy"],
-    ["missing-prompt-drift-policy", ["prompt drift", "角色漂移", "system prompt", "persona", "人设"], "prompt/persona drift policy"],
-    ["missing-content-safety-policy", ["copyright", "版权", "safety", "合规", "内容安全", "PII", "隐私"], "content safety, privacy, or copyright policy"],
-    ["missing-evidence-retention-policy", ["retention", "日志", "log", "evidence retention", "证据保留", "上下文污染"], "log/evidence retention policy"],
-    ["missing-trace-sensitive-data-policy", ["trace_sensitive_data", "tracing", "trace", "sensitive data", "敏感数据"], "tracing sensitive-data policy"],
-    ["missing-concurrent-agent-policy", ["run_id", "owner", "lock", "touched paths", "conflict", "并发", "冲突"], "concurrent-agent conflict policy"],
-    ["missing-reproducibility-policy", ["exit code", "artifact hash", "lockfile", "seed", "可复现", "哈希"], "reproducibility policy"]
+    ["missing-model-version-policy", ["model version", "model_version", "model_id", "pinned", "模型版本", "provider", "提供方"], "模型/提供方版本策略"],
+    ["missing-prompt-drift-policy", ["prompt drift", "角色漂移", "system prompt", "persona", "人设"], "提示词/人设漂移策略"],
+    ["missing-content-safety-policy", ["copyright", "版权", "safety", "合规", "内容安全", "PII", "隐私"], "内容安全、隐私或版权策略"],
+    ["missing-evidence-retention-policy", ["retention", "日志", "log", "evidence retention", "证据保留", "上下文污染"], "日志/证据保留策略"],
+    ["missing-trace-sensitive-data-policy", ["trace_sensitive_data", "tracing", "trace", "sensitive data", "敏感数据"], "追踪敏感数据策略"],
+    ["missing-concurrent-agent-policy", ["run_id", "owner", "lock", "touched paths", "conflict", "并发", "冲突"], "并发 Agent 冲突策略"],
+    ["missing-reproducibility-policy", ["exit code", "artifact hash", "lockfile", "seed", "可复现", "哈希"], "可复现性策略"]
   ];
   for (const [code, terms, label] of p2RiskChecks) {
     if (!includesAny(corpus, terms)) {
-      addIssue(report, "p2", code, `Model/Agent risk ledger lacks ${label}.`, ".plan/SPEC.md", `Add ${label} when model/agent behavior affects delivery or testing.`);
+      addIssue(report, "p2", code, `Model/Agent 风险账本缺少 ${label}.`, ".plan/SPEC.md", `当 model/agent 行为影响交付或测试时，添加 ${label}.`);
     }
   }
 
@@ -755,7 +863,7 @@ function checkModelAgentDevelopmentRisks(cwd, report, corpus) {
     "--live"
   ]);
   if (hasLiveActionScope && !includesAny(corpus, ["CONFIRM_REQUIRED", "Stop Gate", "停止门", "人工确认", "allowlist", "denylist"])) {
-    addIssue(report, "p0", "missing-live-action-stop-gate", "Model/Agent workflow implies live or account-sensitive actions without a hard confirmation/permission gate.", ".plan/SPEC.md", "Add allowlist/denylist plus CONFIRM_REQUIRED or an equivalent hard stop before live writes, deletes, submissions, account actions, or publishing.");
+    addIssue(report, "p0", "missing-live-action-stop-gate", "Model/Agent 工作流涉及实时或账号敏感操作，但缺少硬确认/权限门.", ".plan/SPEC.md", "在实时写入、删除、提交、账号操作或发布前添加 allowlist/denylist 以及 CONFIRM_REQUIRED 或等效硬停止.");
   }
 
   const userLaneDir = path.join(cwd, ".test", "user");
@@ -771,7 +879,7 @@ function checkModelAgentDevelopmentRisks(cwd, report, corpus) {
     })
     .map((file) => path.relative(cwd, file));
   if (suspiciousUserFiles.length > 0) {
-    addIssue(report, "p1", "possible-ai-feedback-in-user-lane", `Possible AI/mock/model feedback found in real user lane: ${suspiciousUserFiles.join(", ")}`, ".test/user", "Move AI simulated users and model-generated feedback to .test/ai/.");
+    addIssue(report, "p1", "possible-ai-feedback-in-user-lane", `真实用户通道中发现疑似 AI/模拟/模型反馈: ${suspiciousUserFiles.join(", ")}`, ".test/user", "将 AI 模拟用户和模型生成反馈移至 .test/ai/.");
   }
 }
 
@@ -1477,6 +1585,8 @@ function checkSkillPackage(cwd, report) {
   // Critical fix S-6.3: skill-package self-audit must also run archive checks
   checkRuntimeIndexSync(cwd, report);
   checkSandboxArchivePaths(cwd, report);
+  checkNameConsistency(cwd, report);
+  checkSkillFrameworkDeclaration(cwd, report);
 }
 
 function buildReport(args) {
@@ -1503,11 +1613,11 @@ function buildReport(args) {
       },
       workflow_entries: []
     },
-    recommended_next_action: "No blocking KIT issues found."
+    recommended_next_action: "未发现阻断性 KIT 问题."
   };
 
   if (!fs.existsSync(cwd)) {
-    addIssue(report, "p0", "missing-cwd", `Target cwd does not exist: ${cwd}`, cwd, "Use an existing project path.");
+    addIssue(report, "p0", "missing-cwd", `目标 cwd 不存在: ${cwd}`, cwd, "请使用已存在的项目路径.");
   } else {
     if (profile === "skill-package") {
       checkSkillPackage(cwd, report);
@@ -1521,43 +1631,43 @@ function buildReport(args) {
 
   if (report.p0.length > 0) {
     report.status = "BLOCKED";
-    report.recommended_next_action = "Fix P0 items before claiming the project is ready.";
+    report.recommended_next_action = "修复 P0 项后再声称项目已就绪.";
   } else if (report.p1.length > 0) {
     report.status = "WARN";
-    report.recommended_next_action = "Project can continue, but P1 risks should be resolved or accepted explicitly.";
+    report.recommended_next_action = "项目可继续，但应显式解决或接受 P1 风险.";
   } else if (report.p2.length > 0) {
     report.status = "PASS_WITH_NOTES";
-    report.recommended_next_action = "Project can continue; clean P2 items when convenient.";
+    report.recommended_next_action = "项目可继续；方便时清理 P2 项.";
   }
   return report;
 }
 
 function printHumanReport(report) {
-  console.log(`KIT validation: ${report.status}`);
+  console.log(`KIT 验证: ${report.status}`);
   console.log(`cwd: ${report.cwd}`);
   console.log(`profile: ${report.profile}`);
   console.log(`host: ${report.host} (${report.evidence.host?.entry || "unknown"})`);
   for (const severity of ["p0", "p1", "p2"]) {
     console.log(`\n${severity.toUpperCase()} (${report[severity].length})`);
     if (report[severity].length === 0) {
-      console.log("- none");
+      console.log("- 无");
       continue;
     }
     for (const issue of report[severity]) {
       const file = issue.file ? ` [${issue.file}]` : "";
       console.log(`- ${issue.code}${file}: ${issue.message}`);
-      if (issue.fix) console.log(`  fix: ${issue.fix}`);
+      if (issue.fix) console.log(`  修复: ${issue.fix}`);
     }
   }
   if (report.evidence.workflow_entries?.length) {
-    console.log(`\nWorkflow entries: ${report.evidence.workflow_entries.join(", ")}`);
+    console.log(`\nWorkflow 入口: ${report.evidence.workflow_entries.join(", ")}`);
   }
   if (report.evidence.deep_research_skill) {
-    const status = report.evidence.deep_research_skill.installed ? "installed" : "missing";
+    const status = report.evidence.deep_research_skill.installed ? "已安装" : "缺失";
     const locations = report.evidence.deep_research_skill.locations.map((item) => item.path).join(", ");
     console.log(`\nDeep research skill: ${status}${locations ? ` (${locations})` : ""}`);
   }
-  console.log(`\nNext action: ${report.recommended_next_action}`);
+  console.log(`\n下一步: ${report.recommended_next_action}`);
 }
 
 function initProject(args) {
@@ -1569,10 +1679,10 @@ function initProject(args) {
     const hasProductInfo = args.owner && args.owner.length > 0;
     const isEmptyDir = !fs.existsSync(cwd) || fs.readdirSync(cwd).length === 0;
     if (!hasProductInfo || isEmptyDir) {
-      console.warn("\n*** WARNING ***");
-      console.warn("Init without clear product intent detected.");
-      console.warn("Recommended: run brainstorm first, or use --skip-brainstorm if you are sure.");
-      console.warn("\nTo skip this warning: node spec-loop-kit.mjs init --skip-brainstorm ...");
+      console.warn("\n*** 警告 ***");
+      console.warn("检测到未明确产品意图的初始化。");
+      console.warn("建议：先运行头脑风暴，或如果确定请使用 --skip-brainstorm。");
+      console.warn("\n跳过此警告: node spec-loop-kit.mjs init --skip-brainstorm ...");
     }
   }
 
@@ -1673,7 +1783,7 @@ function initProject(args) {
       // Write group-specific TEST.md
       const groupTestPath = path.join(groupBase, "TEST.md");
       if (!fs.existsSync(groupTestPath) || args.force) {
-        fs.writeFileSync(groupTestPath, `# ${group.toUpperCase()} Test Instructions\n\n## Run Command\n<!-- Fill in the specific test command for this group -->\n\n## Expected Output\n<!-- Describe the expected output / metrics -->\n\n## Pass Criteria\n<!-- Define what makes this group pass -->\n`, "utf8");
+        fs.writeFileSync(groupTestPath, `# ${group.toUpperCase()} 测试说明\n\n## 运行命令\n<!-- 填写该组的特定测试命令 -->\n\n## 预期输出\n<!-- 描述预期输出 / 指标 -->\n\n## 通过标准\n<!-- 定义该组通过的条件 -->\n`, "utf8");
       }
       // Write heartbeat config for each group
       const heartbeatConfig = generateHeartbeatConfig("default");
@@ -1695,12 +1805,12 @@ function initProject(args) {
     // Write VARIABLES-v1.md template
     const variablesPath = path.join(expBase, "VARIABLES-v1.md");
     if (!fs.existsSync(variablesPath) || args.force) {
-      fs.writeFileSync(variablesPath, `# V1 Experiment Variables\n\n## Base Source\n- Project: ${data.projectName}\n- Commit: <!-- git commit hash -->\n\n## Group Configurations\n\n### group-a (baseline)\n- Data: <!-- e.g., data/raw/ -->\n- Config: <!-- e.g., config/baseline.yaml -->\n- Parameters: <!-- key params -->\n\n### group-b (variant 1)\n- Data: <!-- e.g., data/augmented/ -->\n- Config: <!-- e.g., config/variant1.yaml -->\n- Parameters: <!-- key params -->\n\n### group-c (variant 2)\n- Data: <!-- e.g., data/synthetic/ -->\n- Config: <!-- e.g., config/variant2.yaml -->\n- Parameters: <!-- key params -->\n\n## Expected Metrics\n<!-- Define the target metrics and improvement threshold -->\n`, "utf8");
+      fs.writeFileSync(variablesPath, `# V1 实验变量\n\n## 基准来源\n- 项目: ${data.projectName}\n- 提交: <!-- git commit hash -->\n\n## 分组配置\n\n### group-a (基线)\n- 数据: <!-- 例如: data/raw/ -->\n- 配置: <!-- 例如: config/baseline.yaml -->\n- 参数: <!-- 关键参数 -->\n\n### group-b (变体 1)\n- 数据: <!-- 例如: data/augmented/ -->\n- 配置: <!-- 例如: config/variant1.yaml -->\n- 参数: <!-- 关键参数 -->\n\n### group-c (变体 2)\n- 数据: <!-- 例如: data/synthetic/ -->\n- 配置: <!-- 例如: config/variant2.yaml -->\n- 参数: <!-- 关键参数 -->\n\n## 预期指标\n<!-- 定义目标指标和改进阈值 -->\n`, "utf8");
     }
     // Write REPORT-v1.md template
     const reportPath = path.join(expBase, "REPORT-v1.md");
     if (!fs.existsSync(reportPath) || args.force) {
-      fs.writeFileSync(reportPath, `# V1 Experiment Report\n\n## Summary\n<!-- One-paragraph summary of results -->\n\n## Group Results\n\n### group-a (baseline)\n- Status: <!-- pass / fail -->\n- Key Metrics: <!-- record metrics -->\n- Evidence: <!-- path to evidence -->\n\n### group-b (variant 1)\n- Status: <!-- pass / fail -->\n- Key Metrics: <!-- record metrics -->\n- Evidence: <!-- path to evidence -->\n\n### group-c (variant 2)\n- Status: <!-- pass / fail -->\n- Key Metrics: <!-- record metrics -->\n- Evidence: <!-- path to evidence -->\n\n## Comparison\n<!-- Diff analysis between groups -->\n\n## Conclusion\n<!-- Which group performed best? Should we proceed to V2? -->\n\n## Next Steps\n- [ ] User review and decision\n- [ ] Promote winning group to main project (if applicable)\n- [ ] Design V2 variables (if continuing)\n`, "utf8");
+      fs.writeFileSync(reportPath, `# V1 实验报告\n\n## 摘要\n<!-- 一段结果摘要 -->\n\n## 分组结果\n\n### group-a (基线)\n- 状态: <!-- 通过 / 失败 -->\n- 关键指标: <!-- 记录指标 -->\n- 证据: <!-- 证据路径 -->\n\n### group-b (变体 1)\n- 状态: <!-- 通过 / 失败 -->\n- 关键指标: <!-- 记录指标 -->\n- 证据: <!-- 证据路径 -->\n\n### group-c (变体 2)\n- 状态: <!-- 通过 / 失败 -->\n- 关键指标: <!-- 记录指标 -->\n- 证据: <!-- 证据路径 -->\n\n## 对比分析\n<!-- 各组差异分析 -->\n\n## 结论\n<!-- 哪组表现最好？是否继续 V2？ -->\n\n## 后续步骤\n- [ ] 用户审核与决策\n- [ ] 将优胜组提升到主项目（如适用）\n- [ ] 设计 V2 变量（如继续）\n`, "utf8");
     }
     // Write heartbeat watchdog script to .workflow/scripts/
     const watchdogPath = path.join(cwd, ".workflow", "scripts", "heartbeat-watchdog.ps1");
@@ -1708,7 +1818,7 @@ function initProject(args) {
       fs.writeFileSync(watchdogPath, generateHeartbeatWatchdogScript(), "utf8");
     }
     // Run sub-agent checklist for each experiment group
-    console.log("\n--- Sub-Agent Launch Checklist ---");
+    console.log("\n--- 子代理启动清单 ---");
     let totalFails = 0;
     for (const group of expGroups) {
       const groupCwd = path.join(expBase, group);
@@ -1718,9 +1828,9 @@ function initProject(args) {
       console.log("");
     }
     if (totalFails > 0) {
-      console.log(`WARNING: ${totalFails} total fail(s) across groups. Fix before launching sub-agents.`);
+      console.log(`警告: 共 ${totalFails} 项失败. 启动子代理前请先修复.`);
     } else {
-      console.log("All groups passed checklist — safe to launch sub-agents.");
+      console.log("所有组清单通过 — 可以安全启动子代理.");
     }
   }
 
@@ -1800,13 +1910,13 @@ function initProject(args) {
 
   const errors = results.filter(r => r.status === "error");
   if (errors.length > 0) {
-    console.error(`\n*** ERROR *** ${errors.length} template(s) failed to write:`);
+    console.error(`\n*** 错误 *** ${errors.length} 个模板写入失败:`);
     for (const err of errors) {
       console.error(`  ✗ ${path.relative(cwd, err.target)}: ${err.error}`);
     }
     process.exitCode = 1;
   } else {
-    console.log(`\nSpec Loop Kit initialized: ${cwd}`);
+    console.log(`\nSpec Loop Kit 已初始化: ${cwd}`);
     for (const result of results) {
       console.log(`${result.status.padEnd(8)} ${path.relative(cwd, result.target)}`);
     }
@@ -1828,8 +1938,8 @@ function runSubAgentChecklist(cwd, options = {}) {
     item: "sandbox_dir",
     status: sandboxExists && hasRequiredFiles ? "pass" : (sandboxExists ? "warn" : "fail"),
     message: sandboxExists
-      ? (hasRequiredFiles ? "OK (required files present)" : "Missing required files (README.md, TEST.md, config.json)")
-      : "Missing sandbox directory"
+      ? (hasRequiredFiles ? "OK (所需文件已存在)" : "缺少所需文件 (README.md, TEST.md, config.json)")
+      : "缺少沙盒目录"
   });
 
   // 2. Check TEST.md exists in sandbox root
@@ -1837,7 +1947,7 @@ function runSubAgentChecklist(cwd, options = {}) {
   results.push({
     item: "test_md",
     status: testMdExists ? "pass" : "fail",
-    message: testMdExists ? "OK" : "Missing TEST.md"
+    message: testMdExists ? "OK" : "缺少 TEST.md"
   });
 
   // 3. Check README.md exists in sandbox root
@@ -1845,20 +1955,20 @@ function runSubAgentChecklist(cwd, options = {}) {
   results.push({
     item: "readme_md",
     status: readmeExists ? "pass" : "warn",
-    message: readmeExists ? "OK" : "Missing README.md"
+    message: readmeExists ? "OK" : "缺少 README.md"
   });
 
   // 4. Check git status is clean (if cwd is in a git repo)
   let gitClean = true;
-  let gitMessage = "Not a git repository or clean";
+  let gitMessage = "非 git 仓库或状态干净";
   try {
     const { execSync } = require("node:child_process");
     execSync("git rev-parse --git-dir", { cwd, stdio: "pipe" });
     const status = execSync("git status --porcelain", { cwd, encoding: "utf8", stdio: "pipe" });
     gitClean = status.trim().length === 0;
-    gitMessage = gitClean ? "OK" : `Uncommitted changes: ${status.trim().split("\n").length} file(s)`;
+    gitMessage = gitClean ? "OK" : `未提交更改: ${status.trim().split("\n").length} 个文件`;
   } catch {
-    // Not a git repo or git not available
+    // 非 git 仓库或 git 不可用
   }
   results.push({
     item: "git_clean",
@@ -1873,13 +1983,13 @@ function runSubAgentChecklist(cwd, options = {}) {
     results.push({
       item: "variables_md",
       status: variablesExists ? "pass" : "warn",
-      message: variablesExists ? "OK" : "Missing VARIABLES.md (experiment scenario)"
+      message: variablesExists ? "OK" : "缺少 VARIABLES.md (实验场景)"
     });
   } else {
     results.push({
       item: "variables_md",
       status: "skip",
-      message: "Skipped (not experiment mode)"
+      message: "已跳过 (非实验模式)"
     });
   }
 
@@ -1903,7 +2013,7 @@ function runSubAgentChecklist(cwd, options = {}) {
         if (match) {
           const freeMB = parseInt(match[1], 10) / (1024 * 1024);
           diskOk = freeMB >= minSpaceMB;
-          diskMessage = diskOk ? `OK (${Math.round(freeMB)}MB free)` : `Low disk space (${Math.round(freeMB)}MB free, need ${minSpaceMB}MB)`;
+          diskMessage = diskOk ? `OK (${Math.round(freeMB)}MB 可用)` : `磁盘空间不足 (${Math.round(freeMB)}MB 可用, 需要 ${minSpaceMB}MB)`;
         }
       } else {
         const result = spawnSync("df", ["-m", cwd], { encoding: "utf8" });
@@ -1915,10 +2025,10 @@ function runSubAgentChecklist(cwd, options = {}) {
         const parts = out.trim().split(/\s+/);
         const freeMB = parseInt(parts[3], 10);
         diskOk = freeMB >= minSpaceMB;
-        diskMessage = diskOk ? `OK (${freeMB}MB free)` : `Low disk space (${freeMB}MB free, need ${minSpaceMB}MB)`;
+        diskMessage = diskOk ? `OK (${freeMB}MB 可用)` : `磁盘空间不足 (${freeMB}MB 可用, 需要 ${minSpaceMB}MB)`;
       }
     } catch {
-      diskMessage = "Unable to check disk space";
+      diskMessage = "无法检查磁盘空间";
     }
     results.push({
       item: "disk_space",
@@ -1929,7 +2039,7 @@ function runSubAgentChecklist(cwd, options = {}) {
     results.push({
       item: "disk_space",
       status: "skip",
-      message: "Skipped (not experiment mode)"
+      message: "已跳过 (非实验模式)"
     });
   }
 
@@ -1946,12 +2056,12 @@ function runSubAgentChecklist(cwd, options = {}) {
     try { execSync("nvidia-smi", { stdio: "pipe" }); checks.push("CUDA"); } catch { /* ignore */ }
     if (checks.length === 0) {
       depOk = false;
-      depMessage = "No Node/Python/CUDA detected";
+      depMessage = "未检测到 Node/Python/CUDA";
     } else {
-      depMessage = `Found: ${checks.join(", ")}`;
+      depMessage = `已发现: ${checks.join(", ")}`;
     }
   } catch {
-    depMessage = "Unable to check dependencies";
+    depMessage = "无法检查依赖环境";
   }
   results.push({
     item: "dependencies",
@@ -1959,29 +2069,29 @@ function runSubAgentChecklist(cwd, options = {}) {
     message: depMessage
   });
 
-  // 8. Check heartbeat monitoring is configured (long task scenario)
+  // 8. 检查心跳监控是否已配置 (长任务场景)
   if (options.longTask) {
     const hasHeartbeat = fs.existsSync(path.join(cwd, ".cron")) || fs.existsSync(path.join(cwd, "logs"));
     results.push({
       item: "heartbeat",
       status: hasHeartbeat ? "pass" : "warn",
-      message: hasHeartbeat ? "OK" : "No .cron/ or logs/ found for heartbeat monitoring"
+      message: hasHeartbeat ? "OK" : "未找到 .cron/ 或 logs/ 用于心跳监控"
     });
   } else {
     results.push({
       item: "heartbeat",
       status: "skip",
-      message: "Skipped (not long task mode)"
+      message: "已跳过 (非长任务模式)"
     });
   }
 
-  // 9. Check sub-agent cwd points to sandbox (not main project)
+  // 9. 检查子代理 cwd 指向沙盒 (而非主项目)
   const mainProjectIndicators = [".git", ".plan", ".kit", ".workflow"];
   const isMainProject = mainProjectIndicators.some((ind) => fs.existsSync(path.join(cwd, ind)));
   results.push({
     item: "cwd_is_sandbox",
     status: isMainProject ? "warn" : "pass",
-    message: isMainProject ? "cwd appears to be main project (has .git/.plan/.kit/.workflow)" : "OK"
+    message: isMainProject ? "cwd 似乎是主项目 (包含 .git/.plan/.kit/.workflow)" : "OK"
   });
 
   return results;
@@ -1989,7 +2099,7 @@ function runSubAgentChecklist(cwd, options = {}) {
 
 function printChecklistReport(results, groupName) {
   const prefix = groupName ? `[${groupName}] ` : "";
-  console.log(`${prefix}Sub-Agent Launch Checklist`);
+  console.log(`${prefix}子代理启动清单`);
   console.log(`${prefix}${"=".repeat(40)}`);
   let failCount = 0;
   let warnCount = 0;
@@ -2001,13 +2111,13 @@ function printChecklistReport(results, groupName) {
   }
   console.log(`${prefix}${"=".repeat(40)}`);
   if (failCount > 0) {
-    console.log(`${prefix}Result: BLOCKED (${failCount} fail, ${warnCount} warn)`);
-    console.log(`${prefix}Action: Fix fail items before launching sub-agents.`);
+    console.log(`${prefix}结果: 阻断 (${failCount} 失败, ${warnCount} 警告)`);
+    console.log(`${prefix}操作: 启动子代理前修复失败项.`);
   } else if (warnCount > 0) {
-    console.log(`${prefix}Result: WARN (${warnCount} warning(s))`);
-    console.log(`${prefix}Action: Review warnings before launching sub-agents.`);
+    console.log(`${prefix}结果: 警告 (${warnCount} 项警告)`);
+    console.log(`${prefix}操作: 启动子代理前审查警告.`);
   } else {
-    console.log(`${prefix}Result: PASS — safe to launch sub-agents.`);
+    console.log(`${prefix}结果: 通过 — 可以安全启动子代理.`);
   }
   return { failCount, warnCount };
 }
@@ -2056,8 +2166,8 @@ function generateHeartbeatWatchdogScript() {
     "  [int]$Retries = 3",
     ")",
     "",
-    "# Heartbeat watchdog for Windows",
-    "# Monitors a process by PID, checks stdout output, and handles timeout/retry",
+    "# Windows 心跳看门狗",
+    "# 通过 PID 监控进程，检查 stdout 输出，处理超时和重试",
     "",
     "$retryCount = 0",
     "$lastOutputTime = Get-Date",
@@ -2067,15 +2177,15 @@ function generateHeartbeatWatchdogScript() {
     "  param([int]$TargetPid, [string]$ExpectedName)",
     "  try {",
     "    $proc = Get-Process -Id $TargetPid -ErrorAction Stop",
-    "    # Sec-10.1: verify process name to prevent PID reuse attacks",
+    "    # Sec-10.1: 验证进程名以防止 PID 复用攻击",
     "    if ($ExpectedName -and $proc.Name -ne $ExpectedName) {",
-    "      Write-Warning \"[watchdog] PID $TargetPid name mismatch: expected $ExpectedName, got $($proc.Name). Skipping.\"",
+    "      Write-Warning \"[watchdog] PID $TargetPid 进程名不匹配: 期望 $ExpectedName, 实际 $($proc.Name). 已跳过.\"",
     "      return $false",
     "    }",
     "    return -not $proc.HasExited",
     "  } catch {",
-    "    # V-7: report specific error instead of silently swallowing",
-    "    Write-Warning \"[watchdog] Get-Process PID $TargetPid failed: $($_.Exception.Message)\"",
+    "    # V-7: 报告具体错误而非静默吞掉",
+    "    Write-Warning \"[watchdog] Get-Process PID $TargetPid 失败: $($_.Exception.Message)\"",
     "    return $false",
     "  }",
     "}",
@@ -2084,9 +2194,9 @@ function generateHeartbeatWatchdogScript() {
     "  param([int]$TargetPid, [string]$ExpectedName)",
     "  try {",
     "    $proc = Get-Process -Id $TargetPid -ErrorAction Stop",
-    "    # Sec-10.1: verify process name before termination",
+    "    # Sec-10.1: 终止前验证进程名",
     "    if ($ExpectedName -and $proc.Name -ne $ExpectedName) {",
-    "      Write-Warning \"[watchdog] PID $TargetPid name mismatch. Aborting termination.\"",
+    "      Write-Warning \"[watchdog] PID $TargetPid 进程名不匹配. 终止操作已中止.\"",
     "      return",
     "    }",
     "    Stop-Process -Id $TargetPid -Force:$false -ErrorAction Stop",
@@ -2095,29 +2205,29 @@ function generateHeartbeatWatchdogScript() {
     "      Stop-Process -Id $TargetPid -Force -ErrorAction Stop",
     "    }",
     "  } catch {",
-    "    # V-7: report specific error",
-    "    Write-Warning \"[watchdog] Stop-Process PID $TargetPid failed: $($_.Exception.Message)\"",
+    "    # V-7: 报告具体错误",
+    "    Write-Warning \"[watchdog] Stop-Process PID $TargetPid 失败: $($_.Exception.Message)\"",
     "  }",
     "}",
     "",
-    'Write-Host "[heartbeat-watchdog] Starting monitoring for PID $Pid (task-type: $TaskType, interval: ${Interval}s, timeout: ${Timeout}s, retries: $Retries)"',
+    'Write-Host "[heartbeat-watchdog] 开始监控 PID $Pid (任务类型: $TaskType, 间隔: ${Interval}s, 超时: ${Timeout}s, 重试: $Retries)"',
     "",
     "while ($retryCount -lt $Retries) {",
     "  Start-Sleep -Seconds $Interval",
     "",
-    "  # Check if process is still alive",
+    "  # 检查进程是否仍在运行",
     "  if (-not (Test-ProcessAlive -TargetPid $Pid)) {",
-    '    Write-Host "[heartbeat-watchdog] PID $Pid is no longer alive."',
+    '    Write-Host "[heartbeat-watchdog] PID $Pid 已不再运行."',
     "    $retryCount += 1",
     "    if ($retryCount -ge $Retries) {",
-    '      Write-Error "[heartbeat-watchdog] Process lost after $Retries retries. Task marked as failed."',
+    '      Write-Error "[heartbeat-watchdog] 进程丢失，已重试 $Retries 次. 任务标记为失败."',
     "      exit 1",
     "    }",
-    '    Write-Host "[heartbeat-watchdog] Retry $retryCount / $Retries — process lost, restarting not supported in watchdog mode."',
+    '    Write-Host "[heartbeat-watchdog] 重试 $retryCount / $Retries — 进程丢失，看门狗模式不支持重启."',
     "    continue",
     "  }",
     "",
-    "  # Check stdout output if a stdout file is available",
+    "  # 如果存在 stdout 文件，检查其输出",
     "  $possibleStdoutFiles = @(",
     '    ".plan/runs/latest.stdout",',
     '    ".plan/runs/latest.log",',
@@ -2142,52 +2252,52 @@ function generateHeartbeatWatchdogScript() {
     "",
     "  $elapsed = ([DateTime]::Now - $lastOutputTime).TotalSeconds",
     "  if (-not $hasOutput -and $elapsed -gt $Timeout) {",
-    '    Write-Host "[heartbeat-watchdog] Timeout detected for PID $Pid (no output for ${elapsed}s)."',
+    '    Write-Host "[heartbeat-watchdog] PID $Pid 超时 (已 ${elapsed}s 无输出)."',
     "    Stop-ProcessGracefully -TargetPid $Pid",
     "    $retryCount += 1",
     "    if ($retryCount -ge $Retries) {",
-    '      Write-Error "[heartbeat-watchdog] Task failed after $Retries retries."',
+    '      Write-Error "[heartbeat-watchdog] 任务失败，已重试 $Retries 次."',
     "      exit 1",
     "    }",
-    '    Write-Host "[heartbeat-watchdog] Retry $retryCount / $Retries — SIGTERM sent, waiting for restart..."',
+    '    Write-Host "[heartbeat-watchdog] 重试 $retryCount / $Retries — 已发送 SIGTERM，等待重启..."',
     "  }",
     "}",
     "",
-    'Write-Host "[heartbeat-watchdog] Monitoring ended."'
+    'Write-Host "[heartbeat-watchdog] 监控已结束."'
   ].join("\n");
 }
 
 function printUsage() {
-  console.log("Usage:");
+  console.log("用法:");
   console.log("  spec-loop-kit --help");
   console.log("  spec-loop-kit init [--cwd <path>] [--owner <name>] [--level 0-4] [--profile <name>] [--host auto|generic|codex|claude|opencode|agents] [--template default|data-ml|fullstack] [--workflow] [--experiment] [--with-test] [--with-eval] [--with-cron] [--with-user] [--with-soul] [--force]");
-  console.log("    --level controls project scale and directory depth:");
-  console.log("      0-1 (quick):  minimal structure for <1 day projects — .plan/, .kit/, .test/ only");
-  console.log("      2   (standard): default structure for 2-5 day projects — adds .workflow/, docs/");
-  console.log("      3-4 (deep): full structure for 1+ week projects — adds tests/, evals/, acceptance/");
-  console.log("    --template selects sandbox template:");
-  console.log("      default:   generic code project — src/, tests/, evals/, logs/");
-  console.log("      data-ml:   data/ML project — data/, notebooks/, models/, results/");
-  console.log("      fullstack: web/CLI project — frontend/, backend/, e2e/, docker/");
-  console.log("    Optional flags can override scale defaults: --workflow, --experiment, --with-test, --with-eval, --with-cron, --with-user, --with-soul");
+  console.log("    --level 控制项目规模和目录深度:");
+  console.log("      0-1 (快速):  <1 天项目的最小结构 — 仅 .plan/, .kit/, .test/");
+  console.log("      2   (标准):  2-5 天项目的默认结构 — 增加 .workflow/, docs/");
+  console.log("      3-4 (深度):  1+ 周项目的完整结构 — 增加 tests/, evals/, acceptance/");
+  console.log("    --template 选择沙盒模板:");
+  console.log("      default:   通用代码项目 — src/, tests/, evals/, logs/");
+  console.log("      data-ml:   数据/ML 项目 — data/, notebooks/, models/, results/");
+  console.log("      fullstack: Web/CLI 项目 — frontend/, backend/, e2e/, docker/");
+  console.log("    可选标志可覆盖规模默认值: --workflow, --experiment, --with-test, --with-eval, --with-cron, --with-user, --with-soul");
   console.log(`  spec-loop-kit validate [--cwd <path>] [--profile ${PROFILE_LIST}] [--host auto|generic|codex|claude|opencode|agents] [--json]`);
   console.log(`  spec-loop-kit audit [--cwd <path>] [--profile ${PROFILE_LIST}] [--host auto|generic|codex|claude|opencode|agents] [--json]`);
   console.log("  spec-loop-kit checklist [--cwd <path>] [--experiment] [--long-task] [--json]");
-  console.log("    Run the sub-agent launch checklist against the specified cwd.");
-  console.log("    --experiment: enable experiment-specific checks (VARIABLES.md, disk space).");
-  console.log("    --long-task:  enable long-task checks (heartbeat monitoring).");
+  console.log("    对指定 cwd 运行子代理启动清单.");
+  console.log("    --experiment: 启用实验专属检查 (VARIABLES.md, 磁盘空间).");
+  console.log("    --long-task:  启用长任务检查 (心跳监控).");
   console.log("  spec-loop-kit run [--help]");
-  console.log("    Execution layer helper for /kit-run. Reads modes/run.md and quality/pre-code.md gates.");
-  console.log("    Use this to print the run-mode reference or validate pre-code readiness.");
+  console.log("    /kit-run 的执行层助手. 读取 modes/run.md 和 quality/pre-code.md 门控.");
+  console.log("    用于打印运行模式参考或验证编码前准备状态.");
   console.log("  spec-loop-kit check [--help]");
-  console.log("    Quality layer helper for /kit-check. Reads modes/check.md and quality/ definitions.");
-  console.log("    Use this to print the check-mode reference or run a quick self-check.");
+  console.log("    /kit-check 的质量层助手. 读取 modes/check.md 和 quality/ 定义.");
+  console.log("    用于打印检查模式参考或运行快速自检.");
   console.log("  spec-loop-kit loop [--help]");
-  console.log("    Autonomous cruise helper for /kit-loop. Reads modes/loop.md for checkpoint and scope rules.");
-  console.log("    Use this to print the loop-mode reference or validate loop configuration.");
+  console.log("    /kit-loop 的自动巡航助手. 读取 modes/loop.md 中的检查点和范围规则.");
+  console.log("    用于打印循环模式参考或验证循环配置.");
   console.log("  spec-loop-kit sync [--cwd <path>]");
-  console.log("    Check CLAUDE.md / AGENTS.md / README.md alignment (version, host, anchors).");
-  console.log("    Exits 0 if in sync, exits 1 if discrepancies found.");
+  console.log("    检查 CLAUDE.md / AGENTS.md / README.md 对齐 (版本, 宿主, 锚点).");
+  console.log("    同步则退出码 0, 发现差异则退出码 1.");
 }
 
 try {

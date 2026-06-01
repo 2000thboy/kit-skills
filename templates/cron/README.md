@@ -1,25 +1,25 @@
-# {{project_name}} — Execution Automation
+# {{project_name}} — 执行自动化
 
-This directory contains automated, scheduled, or unattended execution jobs for the project.
+本目录包含项目的自动化、定时或无人值守执行任务。
 
-**Status**: This directory is created on-demand. If empty, the project has no active automation.
+**状态**：本目录按需创建。若为空，表示项目当前无活跃自动化任务。
 
-## Jobs
+## 任务
 
-| Job | Trigger | Executor | Scope | Status |
-|-----|---------|----------|-------|--------|
-| (none) | — | — | — | — |
+| 任务 | 触发条件 | 执行器 | 范围 | 状态 |
+|-----|---------|--------|------|------|
+| (无) | — | — | — | — |
 
-## Schedules
+## 调度
 
-See `schedules/main.yaml` for the master schedule map.
+主调度映射见 `schedules/main.yaml`。
 
-## Logs
+## 日志
 
-Execution logs are organized by month: `logs/YYYY-MM/`.
+执行日志按月组织：`logs/YYYY-MM/`。
 
-## Rules
+## 规则
 
-- Do not create jobs without documenting them in `jobs/`.
-- Every job must have a human gate defined (auto or manual confirmation).
-- Full-trust jobs must have a rollback plan documented.
+- 创建任务后必须在 `jobs/` 中记录文档。
+- 每个任务必须定义人工关卡（自动或手动确认）。
+- 全信任任务必须记录回滚方案。

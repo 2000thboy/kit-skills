@@ -1,31 +1,31 @@
-# User Test — {{project_name}}
+# 用户测试 — {{project_name}}
 
-> Project version: `{{project_version}}`
-> Updated: `{{date}}`
+> 项目版本: `{{project_version}}`
+> 更新日期: `{{date}}`
 
-This folder is for real user testing only. AI dry-runs and automation proof belong in `.test/ai/`.
+此文件夹仅用于真实用户测试。AI 演练和自动化验证属于 `.test/ai/`。
 
-AI-simulated users do not count as real users. Put model-generated tester notes in `.test/ai/reports/`.
+AI 模拟的用户不算真实用户。将模型生成的测试者备注放在 `.test/ai/reports/`。
 
-## What To Test
+## 测试内容
 
-- Install or open the provided package/link.
-- Complete the first usable workflow.
-- Record where the product is confusing, broken, slow, or incomplete.
-- Stop at any account, payment, publishing, or irreversible action gate unless the guide explicitly says otherwise.
+- 安装或打开提供的包/链接。
+- 完成第一个可用工作流。
+- 记录产品在何处令人困惑、损坏、缓慢或不完整。
+- 在任何账户、支付、发布或不可逆操作关卡处停止，除非指南明确说明。
 
-## Package Or Entry
+## 包或入口
 
-Put the tested bundle, link, or command in `.test/user/packages/`.
+将已测试的包、链接或命令放在 `.test/user/packages/`。
 
-## Acceptance
+## 验收
 
-Use `.test/user/acceptance/` for pass/fail checklists.
+使用 `.test/user/acceptance/` 存放通过/失败检查清单。
 
-## Feedback
+## 反馈
 
-Use `.test/user/feedback/` for user notes, interviews, or issue summaries.
+使用 `.test/user/feedback/` 存放用户备注、访谈或问题摘要。
 
-## Evidence
+## 证据
 
-Use `.test/user/evidence/` for screenshots, recordings, logs, or returned files.
+使用 `.test/user/evidence/` 存放截图、录屏、日志或返回文件。

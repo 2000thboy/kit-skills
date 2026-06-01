@@ -1,20 +1,20 @@
-# Workflow Status — {{project_name}}
+# 工作流状态 — {{project_name}}
 
-> Updated: {{date}}
+> 更新日期：{{date}}
 
-## Current Stage
+## 当前阶段
 
 planning
 
-## Active Source
+## 活跃来源
 
 - `.plan/CHECKLIST.md`
 - `.kit/config.json`
 
-## Blockers
+## 阻塞项
 
 - 待确认
 
-## Next Step
+## 下一步
 
 - 待确认

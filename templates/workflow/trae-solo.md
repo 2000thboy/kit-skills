@@ -1,17 +1,17 @@
-# Trae Solo Workflow Preset
+# Trae Solo 工作流预设
 
-## Start
+## 启动
 
-Read `.workflow/README.md`, then `.plan/` and `.kit/`.
+先阅读 `.workflow/README.md`，再阅读 `.plan/` 和 `.kit/`。
 
-## Solo Loop
+## 单人循环
 
-1. Confirm current goal.
-2. Pick the next unchecked task.
-3. Implement only that task.
-4. Run the relevant check.
-5. Update evidence and status.
+1. 确认当前目标。
+2. 选择下一个未勾选的任务。
+3. 仅实施该任务。
+4. 运行相关检查。
+5. 更新证据和状态。
 
-## Rule
+## 规则
 
-If the goal changes, update PRD/SPEC/CHECKLIST before continuing.
+若目标发生变更，继续前先更新 PRD/SPEC/CHECKLIST。

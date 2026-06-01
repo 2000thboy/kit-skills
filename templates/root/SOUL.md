@@ -1,17 +1,17 @@
-# Project Soul
+# 项目灵魂
 
-## What this project is
+## 这个项目是什么
 
-_(Define the core purpose)_
+_（定义核心目的）_
 
-## What this project will never be
+## 这个项目永远不会是什么
 
-_(Define explicit non-goals)_
+_（明确定义非目标）_
 
-## Non-negotiable constraints
+## 不可协商的约束
 
-_(List constraints that must never be violated)_
+_（列出绝不能违反的约束）_
 
-## Target user
+## 目标用户
 
-_(Who is this for?)_
+_（这是为谁做的？）_

@@ -1,12 +1,12 @@
 # CLAUDE.md — {{project_name}}
 
-Project version: `{{project_version}}`
-KIT template version: `{{kit_version}}`
-Host: `claude`
+项目版本: `{{project_version}}`
+KIT 模板版本: `{{kit_version}}`
+宿主: `claude`
 
-Claude must read this file as the primary host entry. Do not rely on `AGENTS.md` for Claude behavior.
+Claude 必须将此文件作为主宿主入口阅读。不要依赖 `AGENTS.md` 来定义 Claude 行为。
 
-Read in this order:
+按以下顺序阅读:
 
 1. `README.md`
 2. `.plan/PRD.md`
@@ -18,13 +18,13 @@ Read in this order:
 8. `.test/README.md`
 9. `.test/config.json`
 
-Rules:
+规则:
 
-- Keep root `README.md` as the user-facing entry. Do not create `.plan/README.md`.
-- Keep `project_version` aligned across `.kit/version.json`, `CLAUDE.md`, package/release metadata, and git tags when present.
-- Use `.workflow/` as the only KIT-managed workflow directory.
-- Put AI self-checks, scripted browser/CLI runs, model-generated feedback, dry-runs, fixtures, and package proof under `.test/ai/`.
-- Put only real user testing packages, user instructions, acceptance forms, feedback, and returned evidence under `.test/user/`.
-- AI-simulated users are AI tests. Do not file them as real user tests.
-- Do not create root `output/` or `outputs/`. During archive cleanup, classify existing contents into `.test/ai/`, `.test/user/`, or `.plan/archive/`.
-- Update `.plan/SPEC.md` before changing architecture, workflow entry, version policy, or test strategy.
+- 保持根目录 `README.md` 作为面向用户的入口。不要创建 `.plan/README.md`。
+- 保持 `project_version` 在 `.kit/version.json`、`CLAUDE.md`、包/发布元数据和 git 标签（如有）之间一致。
+- 使用 `.workflow/` 作为唯一的 KIT 管理工作流目录。
+- 将 AI 自检、脚本化的浏览器/CLI 运行、模型生成的反馈、演练、夹具和包验证放在 `.test/ai/` 下。
+- 仅将真实的用户测试包、用户说明、验收表单、反馈和返回的证据放在 `.test/user/` 下。
+- AI 模拟的用户属于 AI 测试。不要将其归档为真实用户测试。
+- 不要创建根目录的 `output/` 或 `outputs/`。在归档清理期间，将现有内容分类到 `.test/ai/`、`.test/user/` 或 `.plan/archive/`。
+- 在变更架构、工作流入口、版本策略或测试策略之前，先更新 `.plan/SPEC.md`。

@@ -1,13 +1,13 @@
-# User Preferences
+# 用户偏好
 
-## Confirmed (mentioned 2+ times)
+## 已确认（提及 2 次及以上）
 
-_(None yet — preferences will be recorded automatically during sessions)_
+_（尚无 — 偏好将在会话期间自动记录）_
 
-## Pending (mentioned once, needs confirmation)
+## 待确认（提及 1 次，需要确认）
 
-_(None yet)_
+_（尚无）_
 
-## Rejected options (user explicitly said no)
+## 已拒绝的选项（用户明确拒绝）
 
-_(None yet)_
+_（尚无）_

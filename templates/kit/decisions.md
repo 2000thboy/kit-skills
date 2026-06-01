@@ -1,20 +1,20 @@
-# {{project_name}} — Key Decisions Log
+# {{project_name}} — 关键决策日志
 
-## Format
+## 格式
 
-Each entry:
+每条记录：
 
 ```markdown
-### YYYY-MM-DD — <Short decision title>
+### YYYY-MM-DD — <简短决策标题>
 
-- **Context**: Why this decision was needed
-- **Decision**: What was decided
-- **Alternatives considered**: What was rejected and why
-- **Impact**: Who/what is affected
-- **Reversibility**: easy / expensive / no-return
-- **Decision maker**: human / AI / mixed
+- **背景**：为什么需要做此决策
+- **决策**：最终决定了什么
+- **备选方案**：哪些方案被否决及原因
+- **影响范围**：谁/什么会受到影响
+- **可逆性**：容易 / 代价高 / 不可逆
+- **决策人**：人工 / AI / 混合
 ```
 
-## Entries
+## 记录
 
-_(None yet — decisions will be appended automatically during sessions)_
+_(暂无 — 会话期间会自动追加决策记录)_

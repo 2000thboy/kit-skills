@@ -21,26 +21,26 @@
 
 每次继续项目时都要能一句话说清终点。说不清终点，就别急着开工。
 
-| Field | Value |
+| 字段 | 内容 |
 |---|---|
-| Definition of Done | 待补充 |
-| Stop Gate | 待补充 |
-| User-visible result | 待补充 |
-| Out of scope for this stage | 待补充 |
+| 完成定义 | 待补充 |
+| 停止门 | 待补充 |
+| 用户可见结果 | 待补充 |
+| 本阶段范围外 | 待补充 |
 
-## Development Object Classification
+## 开发对象分类
 
 先确认用户到底要开发什么。别把一句“做个工具”自动翻译成 WebUI。
 
-| Field | Value |
+| 字段 | 内容 |
 |---|---|
-| Primary object | 待确认：`skill` / `stable-workflow` / `cli-harness` / `frontend-backend-app` / `omc-orchestration` / `opencli-automation` / `sdk-integration` / `pure-md-framework` / `design-prototype` |
-| Why this object | 待补充 |
-| Recommended path | 待补充 |
-| Alternatives considered | 待补充 |
-| Reversible decisions | 待补充 |
-| No-return or expensive-return decisions | 待补充 |
-| Next step | brainstorm / 建档 / split project / defer |
+| 主对象 | 待确认：`skill` / `stable-workflow` / `cli-harness` / `frontend-backend-app` / `omc-orchestration` / `opencli-automation` / `sdk-integration` / `pure-md-framework` / `design-prototype` |
+| 选择原因 | 待补充 |
+| 推荐路径 | 待补充 |
+| 已考虑的替代方案 | 待补充 |
+| 可逆决策 | 待补充 |
+| 不可逆或高成本决策 | 待补充 |
+| 下一步 | 头脑风暴 / 建档 / 拆分项目 / 推迟 |
 
 ## 产品假设
 
@@ -74,4 +74,4 @@
 - 能启动或运行核心路径。
 - 核心功能符合当前目标。
 - AI 检查证据已放入 `.test/ai/evidence/` 或 `.test/ai/reports/`；真实用户测试证据已放入 `.test/user/evidence/` 或 `.test/user/feedback/`。
-- Stop gate 已明确：用户、平台、人工验收或发布确认未通过时，不得声称完成。
+- 停止门已明确：用户、平台、人工验收或发布确认未通过时，不得声称完成。

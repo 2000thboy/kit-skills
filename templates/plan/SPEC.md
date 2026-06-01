@@ -18,63 +18,63 @@
 - `.test/config.json`
 - `.workflow/README.md`
 
-如果这些文件与代码、测试、运行证据冲突，以 live repo、测试结果和证据为准，并回写本文件。
+如果这些文件与代码、测试、运行证据冲突，以实时仓库、测试结果和证据为准，并回写本文件。
 
-## Invocation Status Brief
+## 调用状态简报
 
 每次调用 KIT 时，先读当前事实源并输出这个短状态。别让下一轮 AI 现场装考古专家。
 
-| Field | Value |
+| 字段 | 内容 |
 |---|---|
-| 当前状态 | planning / 待确认 |
-| 终点 | 待确认；写清 Definition of Done 和 Stop Gate |
-| 方向变化 | none / minor / scope_expansion / direction_change / new_project_candidate |
+| 当前状态 | 规划中 / 待确认 |
+| 终点 | 待确认；写清完成定义和停止门 |
+| 方向变化 | 无 / 轻微 / 范围扩大 / 方向变更 / 潜在新项目 |
 | 下一步 | 待确认 |
 | 需要用户决定 | 仅记录真实产品/业务阻塞项；没有就写“不需要” |
 
 使用 `knowledge/question-bank.json` 的 `SB*` 问题 ID 管理固定追问，不要在上下文里反复复制长问题。
 
-## Entry / Charter Consistency
+## 入口/章程一致性
 
-| File | Role | Consistency status | Action |
+| 文件 | 角色 | 一致性状态 | 操作 |
 |---|---|---|---|
-| `README.md` | project entry | 待确认 | 必须指向 `.plan/` 当前事实源 |
+| `README.md` | 项目入口 | 待确认 | 必须指向 `.plan/` 当前事实源 |
 | `{{host_entry}}` | {{host_entry_role}} | 待确认 | 当前宿主主入口；必须指向 `.plan/`、`.kit/`、`.workflow/`、`.test/` |
-| `.test/README.md` | user-test package entry | 待确认 | 记录隔离测试环境、测试命令、打包/启动/驱动方式和证据路径 |
-| `.workflow/README.md` | workflow entry | 待确认 | 当前可恢复入口、host preset、流程说明和历史 workflow 合同统一放这里 |
-| legacy `.workflows/` / `docs/workflows/` | legacy workflow material, if present | 待确认 | 不作为新入口；归档时迁移或桥接到 `.workflow/` |
-| `.plan/PRD.md` | product charter | 当前事实源 | 与 SPEC/CHECKLIST 保持一致 |
-| `.plan/SPEC.md` | technical charter | 当前事实源 | 与 PRD/CHECKLIST 保持一致 |
+| `.test/README.md` | 用户测试包入口 | 待确认 | 记录隔离测试环境、测试命令、打包/启动/驱动方式和证据路径 |
+| `.workflow/README.md` | 工作流入口 | 待确认 | 当前可恢复入口、宿主预设、流程说明和历史工作流合同统一放这里 |
+| 遗留 `.workflows/` / `docs/workflows/` | 遗留工作流材料（如有） | 待确认 | 不作为新入口；归档时迁移或桥接到 `.workflow/` |
+| `.plan/PRD.md` | 产品章程 | 当前事实源 | 与 SPEC/CHECKLIST 保持一致 |
+| `.plan/SPEC.md` | 技术章程 | 当前事实源 | 与 PRD/CHECKLIST 保持一致 |
 
-Active workflow entry: `.workflow/README.md`
+当前工作流入口：`.workflow/README.md`
 
-## Archive Interaction Gate
+## 归档交互门
 
 归档、清理、打包或移动流程文件前，先判断是否需要问用户。不是所有移动都要开会，但会改变项目事实的移动必须问。
 
 不需要提问的条件：
 
-- `validate` 没有相关 P0/P1。
-- PRD、SPEC、CHECKLIST、`.kit/`、`.workflow/`、`.test/`、README、`{{host_entry}}` 和 live files 目标一致。
-- 候选文件明确是历史、AI 自测证据、真实用户测试材料或生成噪音。
-- 不会丢失当前入口、恢复路径、用户测试包、live action 证据、secret 材料或硬编码环境设置。
+- `validate` 没有相关 P0/P1 问题。
+- PRD、SPEC、CHECKLIST、`.kit/`、`.workflow/`、`.test/`、README、`{{host_entry}}` 和实时文件目标一致。
+- 候选文件明确是历史、AI 自测证据、真实用户测试材料或生成噪声。
+- 不会丢失当前入口、恢复路径、用户测试包、实时操作证据、密钥材料或硬编码环境设置。
 
 需要提问时，使用 `knowledge/question-bank.json` 的 `AR*` 问题 ID：
 
-| Trigger | Question ID | Decision to record |
+| 触发条件 | 问题 ID | 需记录的决定 |
 |---|---|---|
 | 新需求冲突当前 PRD/SPEC | `AR3` | 更新当前项目，或新建项目 |
-| 文件可能是当前事实 | `AR1` | keep / archive / docs / evidence / test_user / test_ai |
+| 文件可能是当前事实 | `AR1` | 保留 / 归档 / 文档 / 证据 / 用户测试 / AI 测试 |
 | 可能影响入口或恢复路径 | `AR2` | 可移动 / 先桥接 / 禁止移动 |
 | AI 自测和真实用户测试混在一起 | `AR4` | `.test/ai/` 或 `.test/user/` |
 
-## Version Contract
+## 版本契约
 
-| Field | Value |
+| 字段 | 内容 |
 |---|---|
-| Project version | `{{project_version}}` |
-| Version source | `.kit/version.json` |
-| Sync targets | `README.md`, `{{host_entry}}`, `.test/config.json`, package/release metadata, git tag/release, `.workflow/README.md` |
+| 项目版本 | `{{project_version}}` |
+| 版本来源 | `.kit/version.json` |
+| 同步目标 | `README.md`, `{{host_entry}}`, `.test/config.json`, package/release 元数据, git tag/release, `.workflow/README.md` |
 
 版本不一致时，先修版本合同，再安排用户测试。
 
@@ -88,29 +88,29 @@ Active workflow entry: `.workflow/README.md`
 |---|---|---|---|---|---|
 | 待补充 | 待补充 | 待补充 | 待补充 | 待补充 | 待补充 |
 
-## Framework Routing Decision
+## 框架路由决策
 
 先确认开发对象，再选框架。不要把用户一句“做个工具”自动翻译成 WebUI，AI 这么干不是智能，是偷懒。
 
-| Object | Default recommendation | When to choose | When not to choose |
+| 对象 | 默认建议 | 适用场景 | 不适用场景 |
 |---|---|---|---|
-| `skill` | 先做 skill package | 用户要复用 AI 行为、规则、审查、建档、写作或分析能力 | 不需要独立命令或界面时不要做 CLI/WebUI |
-| `stable-workflow` | 先做 `.workflow/` + runner contract | 用户要每天/每周/多步骤稳定执行 | 不要一开始就做大 WebUI |
-| `cli-harness` | CLI-Anything style CLI | 已有软件/代码库，需要 Agent 用命令和 JSON 操作真实后端 | 用户还没产品对象时别上 |
+| `skill` | 先做 skill 包 | 用户要复用 AI 行为、规则、审查、建档、写作或分析能力 | 不需要独立命令或界面时不要做 CLI/WebUI |
+| `stable-workflow` | 先做 `.workflow/` + 运行器契约 | 用户要每天/每周/多步骤稳定执行 | 不要一开始就做大 WebUI |
+| `cli-harness` | CLI-Anything 风格 CLI | 已有软件/代码库，需要 Agent 用命令和 JSON 操作真实后端 | 用户还没产品对象时别上 |
 | `frontend-backend-app` | OpenSpec 或 Super Dev | 有前端/后端/全栈产品、长期需求变更、UI/发布门禁 | 只是 skill/workflow 时太重 |
-| `omc-orchestration` | OMC/team/state/handoff | 多 Agent 并行、状态恢复、角色分工 | 不要塞进 KIT Core |
-| `opencli-automation` | OpenCLI/project browser route | 登录态浏览器、平台提交、外部写入 | 不要替代产品规格 |
-| `sdk-integration` | OpenAI/Claude SDK route | 业务逻辑直接调用模型/API | 不要把 SDK 当产品本身 |
-| `design-prototype` | skill 或 stable workflow first | 设计流程要复用、需要稳定产出 | 工作流没稳定前别急着做 CLI/WebUI |
+| `omc-orchestration` | OMC/团队/状态/交接 | 多 Agent 并行、状态恢复、角色分工 | 不要塞进 KIT Core |
+| `opencli-automation` | OpenCLI/项目浏览器路由 | 登录态浏览器、平台提交、外部写入 | 不要替代产品规格 |
+| `sdk-integration` | OpenAI/Claude SDK 路由 | 业务逻辑直接调用模型/API | 不要把 SDK 当产品本身 |
+| `design-prototype` | 先做 skill 或稳定工作流 | 设计流程要复用、需要稳定产出 | 工作流没稳定前别急着做 CLI/WebUI |
 
-For frontend/backend stack selection, record whether OpenSpec or Super Dev is recommended:
+前后端技术栈选型时，记录是否推荐 OpenSpec 或 Super Dev：
 
-| Framework | Recommendation | Reason | Reversible? | No-return point |
+| 框架 | 推荐 | 原因 | 可逆性 | 不可回退点 |
 |---|---|---|---|---|
-| OpenSpec | 待确认 | spec-driven 变更管理 | 早期可迁移 | capability/spec delta 成为事实源后迁移成本上升 |
-| Super Dev | 待确认 | AI 交付治理、UI gate、proof pack、release readiness | 早期可迁移 | 阶段门禁和交付包成为主流程后迁移成本上升 |
+| OpenSpec | 待确认 | 规格驱动变更管理 | 早期可迁移 | 能力/规格差异成为事实源后迁移成本上升 |
+| Super Dev | 待确认 | AI 交付治理、UI 门禁、证明包、发布就绪度 | 早期可迁移 | 阶段门禁和交付包成为主流程后迁移成本上升 |
 
-## Handoff / Routed Capability
+## 交接/路由能力
 
 | 能力 | 负责方 | 工具或 skill | 审批状态 | 证据路径 | 回退规则 |
 |---|---|---|---|---|---|
@@ -118,39 +118,39 @@ For frontend/backend stack selection, record whether OpenSpec or Super Dev is re
 | 执行 | 待补充 | 待补充 | 待确认 | 待补充 | 待补充 |
 | 审查/验证 | 待补充 | 待补充 | 待确认 | `.test/ai/reports/` | 有 P0 时停止 |
 
-## Model / Agent Risk Ledger
+## 模型/Agent 风险台账
 
-模型、Agent、SDK、prompt、工具调用或自动化 workflow 一旦进入项目，就必须把风险写清楚。别等账单炸了、上下文截断了、模型版本换了，再装作这是“AI 的小脾气”。
+模型、Agent、SDK、提示词、工具调用或自动化工作流一旦进入项目，就必须把风险写清楚。别等账单炸了、上下文截断了、模型版本换了，再装作这是“AI 的小脾气”。
 
 | 字段 | 当前策略 | 证据/位置 |
 |---|---|---|
-| Provider / model_id / pinned alias | 待确认；记录固定模型、可替换模型和升级触发条件 | `.plan/SPEC.md` |
-| Budget / cost / quota / rpm / tpm / rate limit | 待确认；记录预算、频率、失败/DEFERRED 行为 | `.plan/SPEC.md` |
-| Max context / token / chunk / truncation | 待确认；长文本和多文件必须有 chunk + synthesis 策略 | `.plan/SPEC.md` / `.test/ai/reports/` |
-| Prompt drift / persona / system prompt | 待确认；人设、system prompt、审查方式变更要归档 | `.plan/archive/` |
-| Tool permission / allowlist / denylist / live action | 待确认；危险操作、外部写入、账号操作必须有确认门 | `.plan/CHECKLIST.md` |
-| Eval / fixture / golden / benchmark isolation | 待确认；评测数据和模拟用户结果进入 `.test/ai/fixtures/` 或 `.test/ai/reports/` | `.test/ai/` |
-| Concurrent agents / run_id / owner / touched paths / conflict gate | 待确认；并发执行必须记录 owner、run_id、写入范围和冲突处理 | `.workflow/status.md` / `.plan/CHECKLIST.md` |
-| Reproducibility / command / exit code / lockfile / seed / artifact hash | 待确认；关键验证必须能复跑，有输入和产物哈希 | `.test/ai/reports/` |
-| Trace sensitive data / logging / retention | 待确认；tracing、tool 参数、模型输入输出涉及敏感数据时要关闭、脱敏或隔离 | `.test/ai/evidence/` |
-| Copyright / privacy / content safety | 待确认；涉及用户数据、公开内容、版权素材时记录边界 | `.plan/SPEC.md` |
-| Evidence budget / context pollution | 待确认；大日志只保留摘要和路径，原始文件进 `.test/ai/evidence/` | `.test/ai/evidence/` |
+| 提供方 / 模型 ID / 固定别名 | 待确认；记录固定模型、可替换模型和升级触发条件 | `.plan/SPEC.md` |
+| 预算 / 成本 / 配额 / 每分钟请求数 / 每分钟令牌数 / 速率限制 | 待确认；记录预算、频率、失败/延期行为 | `.plan/SPEC.md` |
+| 最大上下文 / 令牌 / 分块 / 截断 | 待确认；长文本和多文件必须有分块 + 合成策略 | `.plan/SPEC.md` / `.test/ai/reports/` |
+| 提示词漂移 / 人设 / 系统提示词 | 待确认；人设、系统提示词、审查方式变更要归档 | `.plan/archive/` |
+| 工具权限 / 白名单 / 黑名单 / 实时操作 | 待确认；危险操作、外部写入、账号操作必须有确认门 | `.plan/CHECKLIST.md` |
+| 评测 / 夹具 / 基准 / 基准隔离 | 待确认；评测数据和模拟用户结果进入 `.test/ai/fixtures/` 或 `.test/ai/reports/` | `.test/ai/` |
+| 并发 Agent / 运行 ID / 负责人 / 触及路径 / 冲突门 | 待确认；并发执行必须记录负责人、运行 ID、写入范围和冲突处理 | `.workflow/status.md` / `.plan/CHECKLIST.md` |
+| 可复现性 / 命令 / 退出码 / 锁定文件 / 种子 / 产物哈希 | 待确认；关键验证必须能复跑，有输入和产物哈希 | `.test/ai/reports/` |
+| 敏感数据追踪 / 日志 / 保留期 | 待确认；追踪、工具参数、模型输入输出涉及敏感数据时要关闭、脱敏或隔离 | `.test/ai/evidence/` |
+| 版权 / 隐私 / 内容安全 | 待确认；涉及用户数据、公开内容、版权素材时记录边界 | `.plan/SPEC.md` |
+| 证据预算 / 上下文污染 | 待确认；大日志只保留摘要和路径，原始文件进 `.test/ai/evidence/` | `.test/ai/evidence/` |
 
-## Hardcoded Assumption Review
+## 硬编码假设审查
 
 AI 很爱写死本机信息。归档时必须检查，不然项目一换电脑、账号、端口、模型或目录就报废。
 
 | 类型 | 当前状态 | 处理规则 |
 |---|---|---|
-| 本机绝对路径 | 待确认 | `C:\Users\...`、`/Users/...`、`/home/...`、`/root/...` 必须改成配置、相对路径或 example-only |
-| 浏览器 profile / 登录态路径 | 待确认 | 不入库；只记录 host-local 设置和账号材料策略 |
-| 账号 / 平台 / workspace / book / channel ID | 待确认 | 确认是否环境相关；环境相关则进 config/env，不写死 |
-| localhost / 固定端口 | 待确认 | 是项目契约就写进 SPEC；只是本机示例就别污染代码 |
-| temp / download / output path | 待确认 | 使用 `.test/ai/sandboxes/` 或可配置路径 |
-| model alias / latest / auto / default | 待确认 | 固定模型或记录 alias 升级和重验规则 |
-| placeholder | 待确认 | `your-name`、`yourusername`、`replace-me` 不能留在当前事实或代码里 |
+| 本机绝对路径 | 待确认 | `C:\Users\...`、`/Users/...`、`/home/...`、`/root/...` 必须改成配置、相对路径或仅示例 |
+| 浏览器配置 / 登录态路径 | 待确认 | 不入库；只记录宿主本地设置和账号材料策略 |
+| 账号 / 平台 / 工作区 / 文档 / 频道 ID | 待确认 | 确认是否环境相关；环境相关则进 config/env，不写死 |
+| 本地主机 / 固定端口 | 待确认 | 是项目契约就写进 SPEC；只是本机示例就别污染代码 |
+| 临时 / 下载 / 输出路径 | 待确认 | 使用 `.test/ai/sandboxes/` 或可配置路径 |
+| 模型别名 / 最新 / 自动 / 默认 | 待确认 | 固定模型或记录别名升级和重验规则 |
+| 占位符 | 待确认 | `your-name`、`yourusername`、`replace-me` 不能留在当前事实或代码里 |
 
-## AI Model Selection
+## AI 模型选择
 
 **⚠️ 模型知识时效性**: `knowledge/model-selection.md` 超过 30 天需 WebSearch 验证。
 
@@ -163,33 +163,33 @@ AI 很爱写死本机信息。归档时必须检查，不然项目一换电脑�
 | 生图/UI | 待确认 | 待确认 | 待确认 |
 | 审查/验证 | 待确认 | 待确认 | 待确认 |
 
-### 负面提示（Negative Prompts）
+### 负面提示
 
-- ❌ 不要用 {model} 做 {task} — {reason}
+- ❌ 不要用 {模型} 做 {任务} — {原因}
 - ❌ 不要只用单一模型做全栈 — 每个模型有擅长领域
 
 ### 模型选择记录
 
-- 用户可用模型: 待确认
-- 用户预算/配额: 待确认
-- 用户关键需求: 待确认（代码质量 / 生图效果 / 长文本 / 速度）
-- 确认日期: 待确认
+- 用户可用模型：待确认
+- 用户预算/配额：待确认
+- 用户关键需求：待确认（代码质量 / 生图效果 / 长文本 / 速度）
+- 确认日期：待确认
 
 记录到 `.kit/model-choice.md`。
 
-## Capability Skill Inventory
+## 能力 Skill 盘点
 
 建档和归档开始时，先检查当前宿主和项目本地是否已有后续可能需要的业务 skill、workflow 或 runner。`deep-research` 是固定优先检查项，用于文件检索 + 结合文件的联网搜索；缺失时放到可选安装推荐第一位。KIT 不直接承担这些能力，但必须记录推荐、安装状态和证据。
 
-| Capability | Need | Host status | Project status | Recommended skill/tool | Install target | Approval | Evidence |
+| 能力 | 需求 | 宿主状态 | 项目状态 | 推荐 skill/工具 | 安装目标 | 审批 | 证据 |
 |---|---|---|---|---|---|---|---|
-| Deep research / file-informed web research | 优先检查 | 待确认 | 待确认 | `deep-research` | `skills/deep-research/` 或 host-only | 待确认 | 待补充 |
-| QA / verification loop | 待确认 | 待确认 | 待确认 | 待确认 | `skills/` 或项目测试脚本 | 待确认 | 待补充 |
-| Browser / logged-in evidence | 待确认 | 待确认 | 待确认 | 项目标准优先；无标准时 OpenCLI | `skills/`、`.agents/skills/` 或 host-only | 待确认 | 待补充 |
-| External delivery / publishing | 待确认 | 待确认 | 待确认 | 领域 publisher skill 或项目 runner | `skills/` 或 `.workflow/` | 待确认 | 待补充 |
-| Multi-agent execution | 待确认 | 待确认 | 待确认 | team / ultrawork / OMC / host subagents | host-only 或项目说明 | 待确认 | 待补充 |
-| OpenAI / Claude SDK implementation | 待确认 | 待确认 | 待确认 | SDK docs/implementation skill | `skills/` 或 host-only | 待确认 | 待补充 |
-| Image generation | 待确认 | 待确认 | 待确认 | 项目指定或用户确认的生图 skill/provider | `skills/` 或 host-only | 待确认 | 待补充 |
+| 深度研究 / 基于文件的联网研究 | 优先检查 | 待确认 | 待确认 | `deep-research` | `skills/deep-research/` 或宿主专用 | 待确认 | 待补充 |
+| 质量保证 / 验证循环 | 待确认 | 待确认 | 待确认 | 待确认 | `skills/` 或项目测试脚本 | 待确认 | 待补充 |
+| 浏览器 / 登录态证据 | 待确认 | 待确认 | 待确认 | 项目标准优先；无标准时 OpenCLI | `skills/`、`.agents/skills/` 或宿主专用 | 待确认 | 待补充 |
+| 外部交付 / 发布 | 待确认 | 待确认 | 待确认 | 领域发布 skill 或项目运行器 | `skills/` 或 `.workflow/` | 待确认 | 待补充 |
+| 多 Agent 执行 | 待确认 | 待确认 | 待确认 | 团队 / ultrawork / OMC / 宿主子代理 | 宿主专用或项目说明 | 待确认 | 待补充 |
+| OpenAI / Claude SDK 实现 | 待确认 | 待确认 | 待确认 | SDK 文档/实现 skill | `skills/` 或宿主专用 | 待确认 | 待补充 |
+| 图像生成 | 待确认 | 待确认 | 待确认 | 项目指定或用户确认的生图 skill/提供方 | `skills/` 或宿主专用 | 待确认 | 待补充 |
 
 ## 接口与数据
 
@@ -208,7 +208,7 @@ AI 很爱写死本机信息。归档时必须检查，不然项目一换电脑�
 | 是否涉及浏览器或平台页面 | 待确认 |
 | 是否需要登录态、cookie、账号 session 或绑定浏览器配置 | 待确认 |
 | 首选工具 | 项目标准优先；没有项目标准且涉及登录态时优先 OpenCLI |
-| Playwright 使用范围 | 仅用于 E2E、项目已有测试、跨浏览器回归，或项目明确标准化的场景 |
+| Playwright 使用范围 | 仅用于端到端测试、项目已有测试、跨浏览器回归，或项目明确标准化的场景 |
 | 账号材料策略 | cookie、token、账号材料不得入库 |
 | 证据路径 | `.test/ai/evidence/`；真实用户证据进 `.test/user/evidence/` |
 | 回退规则 | 工具不可用时先更新 SPEC/CHECKLIST，不得静默换工具 |
@@ -229,9 +229,9 @@ AI 很爱写死本机信息。归档时必须检查，不然项目一换电脑�
 | 测试 | 待补充 | 关键路径通过 |
 | 视觉验证 | 待补充 | 无遮挡、错位、滚动边界问题 |
 
-## Stop Gate
+## 停止门
 
-不得声称完成，直到以下 gate 全部通过：
+不得声称完成，直到以下门禁全部通过：
 
 - 自动检查或测试通过，或明确记录未运行原因。
 - 人工/平台/发布确认已完成，或明确停在 `CONFIRM_REQUIRED` / `DEFERRED` / `BLOCKED`。

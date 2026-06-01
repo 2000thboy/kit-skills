@@ -1,18 +1,18 @@
-# {{project_name}} — Tests
+# {{project_name}} — 测试
 
-This directory contains standard tests recognized by your framework (pytest, Jest, Cargo, etc.).
+本目录包含框架可识别的标准测试（pytest、Jest、Cargo 等）。
 
-## Structure
+## 目录结构
 
 ```
 tests/
-  unit/           # Unit tests
-  integration/    # Integration tests
-  acceptance/     # User acceptance tests (human-executed)
+  unit/           # 单元测试
+  integration/    # 集成测试
+  acceptance/     # 用户验收测试（人工执行）
 ```
 
-## Rules
+## 规则
 
-- Put traditional test code here — frameworks will discover it automatically
-- Do not put AI-generated evidence here — evidence goes to `evals/evidence/` or `docs/evidence/`
-- Do not use `.test/` — it is hidden and breaks framework discovery
+- 传统测试代码放在此处 — 框架会自动发现
+- 不要在此处存放 AI 生成的证据 — 证据应放入 `evals/evidence/` 或 `docs/evidence/`
+- 不要使用 `.test/` — 该目录为隐藏目录，会导致框架无法发现测试

@@ -1,24 +1,24 @@
-# Test Package — {{project_name}}
+# 测试包 — {{project_name}}
 
-> Project version: `{{project_version}}`
-> KIT template version: `{{kit_version}}`
-> Host: `{{host}}`
-> Updated: `{{date}}`
+> 项目版本: `{{project_version}}`
+> KIT 模板版本: `{{kit_version}}`
+> 宿主: `{{host}}`
+> 更新日期: `{{date}}`
 
-## Purpose
+## 用途
 
-`.test/` is the isolated test package. It has two lanes:
+`.test/` 是隔离的测试包。它有两个通道：
 
-- `.test/ai/`: AI/self-check evidence, dry-runs, packaging proof, and automation logs.
-- `.test/user/`: real user testing package, user-facing instructions, install bundles, acceptance forms, feedback, and user evidence.
+- `.test/ai/`: AI/自检证据、演练、打包验证和自动化日志。
+- `.test/user/`: 真实用户测试包、面向用户的说明、安装包、验收表单、反馈和用户证据。
 
-Do not mix these lanes. AI proof is not a user test. User feedback is not CI output. Small distinction, large reduction in nonsense.
+不要混用这两个通道。AI 验证不是用户测试。用户反馈不是 CI 输出。区分虽小，却能大幅减少混乱。
 
-If an AI agent simulates a user, roleplays a tester, drives a browser, runs a CLI, or generates feedback, it is still `.test/ai/`. `.test/user/` is only for real humans or external user testers and the package prepared for them.
+如果 AI 代理模拟用户、扮演测试者、驱动浏览器、运行 CLI 或生成反馈，它仍然属于 `.test/ai/`。`.test/user/` 仅用于真实人类或外部用户测试者，以及为他们准备的包。
 
-Do not create root `output/` or `outputs/`. Those folders are ambiguity in directory form. Classify their contents into `.test/ai/`, `.test/user/`, or `.plan/archive/`.
+不要创建根目录的 `output/` 或 `outputs/`。这些文件夹本质上是目录形式的歧义。将其内容分类到 `.test/ai/`、`.test/user/` 或 `.plan/archive/`。
 
-## Layout
+## 目录结构
 
 ```text
 .test/
@@ -39,51 +39,51 @@ Do not create root `output/` or `outputs/`. Those folders are ambiguity in direc
     evidence/
 ```
 
-## Frontend App
+## 前端应用
 
-Record real project commands before testing:
-
-```powershell
-<install command>
-<dev server command>
-<build command>
-<test command>
-```
-
-Check:
-
-- app opens at the documented URL
-- first usable workflow works without developer notes
-- layout fits desktop and mobile
-- no text overlap or clipped controls
-- browser/screenshot evidence saved under `.test/user/evidence/` for user runs or `.test/ai/evidence/` for AI runs
-
-## Skill Package
-
-Run validation and package dry-run from the package root:
+测试前记录真实项目命令：
 
 ```powershell
-<skill validation command>
-<package dry-run command>
+<安装命令>
+<开发服务器命令>
+<构建命令>
+<测试命令>
 ```
 
-Save AI dry-run file lists under `.test/ai/packages/`. Save user-installable bundles under `.test/user/packages/`.
+检查项：
 
-## Backend Or CLI
+- 应用在文档记录的 URL 打开
+- 第一个可用工作流无需开发者备注即可运行
+- 布局适配桌面端和移动端
+- 无文本重叠或控件裁剪
+- 浏览器/截图证据保存在 `.test/user/evidence/`（用户运行）或 `.test/ai/evidence/`（AI 运行）
 
-Drive AI CLI checks from `.test/ai/sandboxes/<version>/<test-slug>/`:
+## Skill 包
+
+从包根目录运行验证和打包演练：
 
 ```powershell
-<setup command>
-<smoke command>
-<failure/edge-case command>
+<skill 验证命令>
+<打包演练命令>
 ```
 
-Save command output and exit codes in `.test/ai/reports/`.
+将 AI 演练文件列表保存在 `.test/ai/packages/`。将用户可安装包保存在 `.test/user/packages/`。
 
-## User Testing Package
+## 后端或 CLI
 
-Put only user-facing material here:
+从 `.test/ai/sandboxes/<version>/<test-slug>/` 驱动 AI CLI 检查：
+
+```powershell
+<设置命令>
+<冒烟命令>
+<失败/边界情况命令>
+```
+
+将命令输出和退出码保存在 `.test/ai/reports/`。
+
+## 用户测试包
+
+此处仅放置面向用户的材料：
 
 ```text
 .test/user/
@@ -95,25 +95,25 @@ Put only user-facing material here:
   evidence/
 ```
 
-Before giving the project to users, prepare:
+交付给用户前，准备：
 
-- install/open instructions in `.test/user/README.md`
-- the tested package or URL pointer in `.test/user/packages/`
-- what the user should try in `.test/user/guides/`
-- pass/fail checklist in `.test/user/acceptance/`
-- feedback form or notes in `.test/user/feedback/`
-- screenshots, recordings, or returned evidence in `.test/user/evidence/`
+- `.test/user/README.md` 中的安装/打开说明
+- `.test/user/packages/` 中的已测试包或 URL 指针
+- `.test/user/guides/` 中的用户应尝试内容
+- `.test/user/acceptance/` 中的通过/失败检查清单
+- `.test/user/feedback/` 中的反馈表单或备注
+- `.test/user/evidence/` 中的截图、录屏或返回证据
 
-Do not put AI-generated mock feedback here. If a model pretends to be a user, it belongs in `.test/ai/reports/`.
+不要将 AI 生成的模拟反馈放在此处。如果模型假装是用户，它属于 `.test/ai/reports/`。
 
-## Workflow Project
+## 工作流项目
 
-Read `.workflow/README.md`, then `.plan/`, `.kit/`, and this file.
+阅读 `.workflow/README.md`，然后是 `.plan/`、`.kit/` 和本文件。
 
-Check:
+检查项：
 
-- resume path is clear
-- dry-run path is separate from live action
-- state and evidence paths are documented
-- human stop gates are visible
-- old `.workflows/` or `docs/workflows/` paths are migrated, bridged, or marked historical
+- 恢复路径清晰
+- 演练路径与实时操作分离
+- 状态和证据路径有文档记录
+- 人工停止关卡可见
+- 旧的 `.workflows/` 或 `docs/workflows/` 路径已迁移、桥接或标记为历史

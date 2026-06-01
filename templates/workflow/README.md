@@ -1,15 +1,15 @@
-# Workflow Entry — {{project_name}}
+# 工作流入口 — {{project_name}}
 
-> Owner: {{owner}}
-> Profile: {{profile}}
-> Project version: {{project_version}}
-> Updated: {{date}}
+> 负责人：{{owner}}
+> 配置：{{profile}}
+> 项目版本：{{project_version}}
+> 更新日期：{{date}}
 
-## Purpose
+## 用途
 
-Stable workflow entry for AI IDEs, CLI agents, and local runners.
+面向 AI IDE、CLI 代理和本地运行器的稳定工作流入口。
 
-## Read Order
+## 阅读顺序
 
 1. `.plan/PRD.md`
 2. `.plan/SPEC.md`
@@ -20,16 +20,16 @@ Stable workflow entry for AI IDEs, CLI agents, and local runners.
 7. `.test/config.json`
 8. `.workflow/status.md`
 
-## Presets
+## 预设配置
 
-- `codex.md`: Codex workflow.
-- `workbuddy.md`: WorkBuddy progress-reading workflow.
-- `trae-solo.md`: Trae Solo workflow.
+- `codex.md`：Codex 工作流。
+- `workbuddy.md`：WorkBuddy 进度读取工作流。
+- `trae-solo.md`：Trae Solo 工作流。
 
-## Rule
+## 规则
 
-This directory explains how to resume and operate the workflow. It does not override `.plan/` unless the decision is promoted into PRD/SPEC/CHECKLIST.
+本目录说明如何恢复和运行工作流。除非决策已升级写入 PRD/SPEC/CHECKLIST，否则不得覆盖 `.plan/` 的内容。
 
-AI-run workflow proof goes to `.test/ai/`. Real user testing packages and returned user evidence go to `.test/user/`. If an AI simulates a user, it is still AI proof.
+AI 运行的工作流证明存放至 `.test/ai/`。真实用户测试包及用户反馈证据存放至 `.test/user/`。若由 AI 模拟用户，仍视为 AI 证明。
 
-Do not use root `output/` or `outputs/` as workflow state. During archive cleanup, classify old output material into `.test/ai/`, `.test/user/`, or `.plan/archive/`.
+请勿使用根目录 `output/` 或 `outputs/` 作为工作流状态。归档清理时，将旧输出材料分类至 `.test/ai/`、`.test/user/` 或 `.plan/archive/`。
