@@ -430,6 +430,8 @@ evals/                   # AI full-program self-test (on-demand)
 Brainstorm 完成 → 分类确认(scale) → 生成 PRD → PM Audit → Spec Self-Review → YAGNI 门 → 用户确认 → 生成 SPEC → PM Audit → Spec Self-Review → YAGNI 门 → 用户确认 → 生成 CHECKLIST → PM Audit → Spec Self-Review → YAGNI 门 → 用户确认 → `/kit-run`
 ```
 
+Before each arrow phase, output a `Phase Start` block. After each arrow phase, output a `Phase Closure` block. The user must always know what is about to happen, what just happened, whether the phase is good enough, and which command comes next. In Codex, recommend using Goal mode for long phases so objective and stop condition stay visible.
+
 **Scale-Aware 确认门:**
 
 | Scale | PRD确认 | SPEC确认 | CHECKLIST确认 | PM审计 |
@@ -573,6 +575,50 @@ Spec Self-Review: ✅ 通过
 ---
 ✅ 用户确认 | 时间: YYYY-MM-DD HH:MM | 版本: {git-short-hash}
 ```
+
+### 需求确认后的交接报告（强制）
+
+When PRD/SPEC/CHECKLIST are confirmed, or when a quick project confirms the merged `PLAN.md`, output this before `/kit-run`:
+
+```markdown
+## Requirement-to-Run Handoff
+
+### 计划总览
+| 项 | 内容 |
+|---|---|
+| 产品目标 | <one sentence> |
+| 目标用户 | <who> |
+| 本轮范围 | <in scope> |
+| 明确不做 | <non-goals> |
+| 验收标准 | <observable acceptance> |
+
+### 全需求审查
+| 状态 | 项目 |
+|---|---|
+| 已确认 | <confirmed requirements> |
+| 需要用户决定 | <only blocking product decisions> |
+| PM 风险 | <scope/risk/readiness concerns> |
+| 技术路线 | <plain-language route, not framework trivia> |
+
+### 执行计划
+| 顺序 | 任务 | 负责人/工具 | 验证 |
+|---|---|---|---|
+| 1 | <first task> | <Codex/Claude/opencode/manual> | <command/evidence> |
+| 2 | <next task> | <owner> | <command/evidence> |
+
+### 我的评价
+- 准备度: <ready|not ready|ready with risks>
+- 最大风险: <risk>
+- 建议: <recommended action>
+
+### 下一条命令
+`/kit-run start`
+```
+
+Rules:
+- If any blocking product decision remains, the next command is not `/kit-run`; ask one concrete question.
+- If PM Audit has 🔴 blockers, route to `/kit-check` or document repair first.
+- If the plan is confirmed and no blockers remain, do not end with vague "下一步继续"; explicitly say `/kit-run start`.
 
 **3次未确认处理:**
 - 第1次未确认 → 重新呈现文档摘要，询问是否需要解释
@@ -784,6 +830,8 @@ Before packing, present to the user:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
+This confirmation is the Delivery Contents Gate. It is more important than package mechanics. If the user has not confirmed the contents and exclusions, do not create the V1 delivery package.
+
 **Step 2: 清理临时文件**
 
 Do not copy-paste destructive cleanup commands blindly. First run a dry preview and confirm all matched paths are generated caches, dependencies, or temporary outputs. If any matched path may contain user work, stop and ask.
@@ -845,6 +893,7 @@ ls README.md .kit/version.json
 ### Pack Gate Rules
 
 - **必须经用户确认后才能打包。** 用户说"打包"不等于确认，必须得到"确认"。
+- **交付内容物必须确认。** 打包前必须列出 included、excluded、evidence、run/open instructions、known risks，并得到用户确认。
 - **默认要求验收先通过。** 若 `/kit-test` 未通过或未运行，必须在打包确认中标明风险；没有用户明确接受风险时不得生成 V1 交付包。
 - **敏感信息必须排除。** `.env`、API key、账号材料不得进入打包输出。
 - **临时文件必须清理。** 开发日志、缓存、依赖目录不得进入打包输出。
@@ -888,12 +937,21 @@ Use this track when the user says:
   • 按 .plan/CHECKLIST.md 验收标准运行测试
   • 生成验收测试报告
 
+交付内容物预览:
+  • 将交付/验收的文件和目录: <included>
+  • 不包含的内容: <excluded>
+  • 证据和报告: <evidence>
+  • 使用/运行方式: <run instructions>
+  • 已知风险: <known risks>
+
 用户可回复:
   • "确认" → 执行验收
   • "还有未完成项" → 返回 /kit-run 继续开发
   • "取消" → 不验收
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
+
+`/kit-test` also uses the Delivery Contents Gate. If contents are unclear, return to `/kit-run` or `/kit-check`; do not start acceptance.
 
 **Step 2: 生成临时验收包**
 
@@ -1329,6 +1387,7 @@ For `brainstorm`, report:
 - no-return decisions and what should not be decided yet
 - benchmark/comparable products or workflow patterns when useful
 - whether the next step is 建档, more exploration, defer, or split into a new project
+- Phase Closure with a recommended next command
 
 For 建档, report:
 
@@ -1343,6 +1402,8 @@ For 建档, report:
 - what the user must decide next, if anything
 - what Codex/agents can continue without user technical input
 - remaining inputs needed from the user
+- Requirement-to-Run Handoff after final confirmation
+- Phase Closure with the exact next command
 
 **三件套审查契约（强制）:**
 - PRD 未经用户书面确认 → 不得生成 SPEC（记录违规到 `.kit/audit-log.md`）
@@ -1368,3 +1429,4 @@ For 归档, report:
 - beginner-readable current status and next safe action
 - user decisions versus Codex-owned technical work
 - remaining risks
+- Phase Closure with the next safe action

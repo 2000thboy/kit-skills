@@ -1,6 +1,6 @@
 # /kit-run Mode — kit-skills v2.0
 
-Execution layer: coding, testing, running.
+Execution layer: implement, self-test, fix failures, and complete basic acceptance.
 
 ---
 
@@ -9,11 +9,12 @@ Execution layer: coding, testing, running.
 ```
 /kit-run                       → View current execution status
 /kit-run start                 → Begin execution per SPEC task list
-/kit-run test                  → Run project/framework tests during implementation
+/kit-run test                  → Run project/framework tests and basic acceptance during implementation
 /kit-run smoke                 → Smoke test
+/kit-run fix <scope>           → Fix issues returned by /kit-check or failed basic acceptance
 ```
 
-`/kit-run test` is not the same as `/kit-test`. `/kit-run test` runs developer checks for the current implementation task. `/kit-test` is the acceptance layer for version boundary confirmation, temporary acceptance packages, user-facing acceptance tests, and test reports before `/kit-pack`.
+`/kit-run test` is not the same as `/kit-test`. `/kit-run test` runs developer checks and basic acceptance for the current implementation task. `/kit-test` is the acceptance layer for version boundary confirmation, temporary acceptance packages, user-facing acceptance tests, and test reports before `/kit-pack`.
 
 ## Responsibilities
 
@@ -21,7 +22,8 @@ Execution layer: coding, testing, running.
 - Enforce pre-code gate before any implementation
 - Enforce file-write 4-item self-check before every file write
 - Follow frontend-first flow for UI projects
-- Verify implementation closure 5-item before claiming completion
+- Complete basic acceptance before handing work to `/kit-check`
+- Fix failed basic acceptance once before returning to the user
 - Integrate Codex via CLI contract, not skill format
 - Use Claude Code Agent tool for parallel execution (no OMC dependency)
 
@@ -30,6 +32,8 @@ Execution layer: coding, testing, running.
 ## Pre-Code Gate
 
 Before writing any code:
+
+0. **读取 Requirement-to-Run Handoff** — Confirm the previous KIT phase ended with a handoff containing plan summary, requirement review, execution plan, and next command. If the handoff is missing, stop and return to `/kit` to produce it; do not infer the plan from scattered chat history.
 
 1. **技术栈预研** — Search official docs for APIs, SDKs, frameworks. Do not guess signatures or behavior.
 2. **读取项目配置** — Read `tsconfig.json`, `super-dev.yaml`, `.env`, `package.json`, or equivalent. Understand existing constraints.
@@ -52,6 +56,13 @@ Before writing any code:
    - 确认标记格式：`✅ 用户确认 | 时间: ... | 版本: ...`
 
 If any step fails, stop and report the blocker. Do not proceed to implementation with unresolved gate failures.
+
+When `/kit-run` starts successfully, restate:
+- the first implementation task
+- why it is first
+- files likely touched
+- verification command
+- what command should follow after this task (`/kit-check diff`, `/kit-run test`, `/kit-test`, or `/kit-pack`)
 
 ---
 
@@ -78,6 +89,74 @@ For projects with UI/UX requirements:
 4. **再实现后端 + 联调** — Implement backend APIs and wire them to the frontend. Replace placeholder data with real API calls.
 
 Do not implement backend first and "trust" that the UI will work. UI is the user-facing contract; it must be verified first.
+
+---
+
+## Basic Acceptance Loop
+
+`/kit-run` should solve the assigned problem end to end at the implementation level. It does not stop after editing files.
+
+Run this loop:
+
+```text
+implement → build/type/lint → project tests → smoke run → requirement path check → fix failures → rerun failed checks
+```
+
+### Basic Acceptance Checklist
+
+Before handing off to `/kit-check`, verify:
+
+1. **实现完成** — The selected CHECKLIST/PLAN item is implemented in the real code path.
+2. **build/type/lint 通过** — Run the project's build, typecheck, lint, or closest equivalent. Zero blocking errors.
+3. **项目测试通过** — Run relevant unit/integration/e2e tests that already exist for the touched area.
+4. **smoke run 通过** — Start the app, CLI, workflow, or skill entry and confirm the main path does not crash.
+5. **核心需求路径验证** — Compare the result with PRD/SPEC/CHECKLIST acceptance criteria; no orphaned code or mock-only path.
+6. **失败回修** — If any basic acceptance item fails, fix the failure and rerun the failed check once before returning to the user.
+7. **证据记录** — Record commands, exit codes, screenshots/log paths when relevant, and remaining uncovered risks.
+
+If basic acceptance fails after one fix pass, stop with a blocker and next command:
+
+```text
+/kit-run fix <scope>
+```
+
+If basic acceptance passes, the next command is usually:
+
+```text
+/kit-check diff
+```
+
+---
+
+## Run Closure
+
+Every `/kit-run` session ends with:
+
+```markdown
+## Run Closure
+
+### 实现结果
+- <what changed>
+
+### 基础验收
+| Check | Command/Evidence | Result |
+|---|---|---|
+| build/type/lint | <command> | <pass/fail/not-run + reason> |
+| tests | <command> | <pass/fail/not-run + reason> |
+| smoke | <command/evidence> | <pass/fail/not-run + reason> |
+| requirement path | <evidence> | <pass/fail> |
+
+### 回修情况
+- <failures fixed and rerun result>
+
+### 未覆盖风险
+- <risks that /kit-check must review>
+
+### 下一条命令
+`/kit-check diff`
+```
+
+Do not claim the work is ready for user acceptance until `/kit-check` has made a go/no-go judgment.
 
 ---
 

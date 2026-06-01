@@ -62,6 +62,83 @@ KIT is not only an archive or cleanup tool. Archiving is one capability. The pri
 - **用户说"test"、"验收"、"版本已完成"**：用 `/kit-test` → **用户确认** → 确认边界清晰 → 生成临时验收包 → 运行验收测试 → 生成测试报告。
 - 用户空输入、只输入 `/kit` 或意图不清：显示 help/usage，并追问一个关键问题。
 
+## Phase Start / Closure Contract
+
+Every KIT phase must start and end with a short report. Do not leave the user with only "done" or a file path.
+
+Start format:
+
+```markdown
+## Phase Start
+
+阶段: <brainstorm|plan|review|run|check|test|pack|archive>
+目标: <what this phase will decide or produce>
+
+### 输入
+- <confirmed facts / files / user request>
+
+### 本阶段会做什么
+1. <step>
+2. <step>
+
+### 需要用户确认的内容
+- <plan, deliverables, live action, or "无">
+
+### Codex Goal Mode
+- If using Codex for a multi-step phase, suggest setting a Goal so the phase objective, budget, and stop condition stay visible.
+```
+
+End format:
+
+```markdown
+## Phase Closure
+
+阶段: <brainstorm|plan|review|run|check|test|pack|archive>
+结论: <pass|blocked|needs-user-decision>
+
+### 本阶段完成了什么
+- <facts and files changed/created>
+
+### 我的评价
+- <PM-level judgment: quality, clarity, risk, and whether it is ready for the next phase>
+
+### 仍然不清楚/有风险
+- <blocking gaps first; write "无" only if verified>
+
+### 建议下一步
+1. <recommended next action>
+2. <fallback action if blocked>
+
+### 下一条命令
+`/<kit-command> ...`
+```
+
+If the next command is not `/kit-run`, say exactly why. If the next step requires the user, ask for one concrete decision.
+
+For `/kit-check`, the Phase Start must include the check plan and wait for user confirmation before running deep Hedge or edge-case checks.
+
+## Requirement-to-Run Handoff
+
+After requirements are confirmed, KIT must not jump directly into coding. It must produce an execution handoff:
+
+1. **Plan summary**: product goal, target user, scope, non-goals, acceptance criteria.
+2. **Requirement review**: all confirmed requirements, open questions, scope risks, and PM audit result.
+3. **Execution plan**: ordered task list, first task, files likely touched, verification command, owner/agent route.
+4. **Command bridge**: exact next command, usually `/kit-run start`; if not ready, route to `/kit-check`, `/kit-status`, or more `/kit brainstorm`.
+
+## Delivery Contents Gate
+
+Before `/kit-test`, `/kit-pack`, archive, or handoff, confirm delivery contents explicitly. This is the most important handoff gate.
+
+Required contents confirmation:
+
+- what will be delivered
+- what is excluded
+- evidence included
+- how to run/open/use it
+- known risks
+- whether the user accepts the contents and exclusions
+
 ## Critical Gates
 
 ### User Gate（用户门禁 — 不可跳过）
@@ -80,6 +157,8 @@ KIT is not only an archive or cleanup tool. Archiving is one capability. The pri
 - Scope Drift Gate：实施前后都要核对目标、范围和验收标准；新增范围必须得到用户确认。
 - Archive Gate：归档前列出将移动/压缩/删除的文件，用户确认后再执行。
 - Session Boundary：阶段结束要写清当前状态、未完成项、验证结果和下一步，避免跨会话状态污染。
+- Phase Report Gate：每个阶段启动必须输出 Phase Start，结束必须输出 Phase Closure；需求确认后必须输出 Requirement-to-Run Handoff。
+- Delivery Contents Gate：验收、打包、归档或交接前必须确认交付内容物；这是最高优先级交接门。
 - P0 findings block progress until fixed.
 - P1 findings require explicit user acknowledgment before continuing.
 
@@ -111,8 +190,8 @@ KIT v2.0 uses eight user-facing commands. Helper CLI subcommands in `bin/spec-lo
 | `/kit <subcommand>` | Product layer: brainstorm, init, archive, sandbox routing | `modes/kit.md` |
 | `/kit-new` | New-project layer: start from zero, classify object, create plan facts | `modes/kit-new.md` |
 | `/kit-status` | Status layer: read-only state, drift, archive readiness | `modes/kit-status.md` |
-| `/kit-run <mode>` | Execution layer: coding, testing, running | `modes/run.md` |
-| `/kit-check <subcommand>` | Quality layer: inspection, research, planning | `modes/check.md` |
+| `/kit-run <mode>` | Execution layer: implement, self-test, fix failures, and complete basic acceptance | `modes/run.md` |
+| `/kit-check <subcommand>` | Deep review layer: Hedge, edge cases, semantic risks, go/no-go judgment | `modes/check.md` |
 | `/kit-loop <duration>` | Autonomous cruise: self-iterating development | `modes/loop.md` |
 | `/kit-pack` | Delivery packaging layer: clean, verify, create the V1 shareable package after acceptance | `modes/kit.md` (Pack section) |
 | `/kit-test` | Acceptance layer: boundary check, temporary acceptance package, tests, report | `modes/kit.md` (Test section) |
@@ -238,3 +317,4 @@ When reporting, distinguish:
 5. Read files before changing them and preserve unrelated user changes.
 6. Use bundled `bin/spec-loop-kit.mjs` helpers when available; otherwise perform minimal manual edits.
 7. Run relevant checks after changes and report what passed, failed, or was not run.
+8. End with Phase Closure and the exact next KIT command.

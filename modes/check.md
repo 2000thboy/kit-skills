@@ -1,6 +1,6 @@
 # /kit-check Mode — kit-skills v2.0
 
-Quality layer: inspection, research, planning.
+Deep review layer: Hedge, edge cases, semantic risk, and go/no-go judgment after `/kit-run`.
 
 ---
 
@@ -8,18 +8,57 @@ Quality layer: inspection, research, planning.
 
 ```
 /kit-check                     → View quality status
-/kit-check full                → Full quality check (entire project)
-/kit-check diff                → Incremental check (changed files only)
+/kit-check full                → Full deep review (entire project + Hedge)
+/kit-check diff                → Deep review of changed files after /kit-run
 /kit-check research "<topic>"  → Deep research (dual-engine)
 /kit-check plan                → Re-plan based on check results
 ```
+
+## Positioning
+
+`/kit-check` is not the normal test runner. Normal build/test/smoke/basic acceptance belongs to `/kit-run`.
+
+`/kit-check` starts after `/kit-run` has produced a `Run Closure`. It judges whether the implementation is safe to move forward.
+
+Before running `/kit-check diff`, `/kit-check full`, or any Hedge/deep edge pass, present a check plan and get user confirmation. This is mandatory because `/kit-check` may broaden scope beyond ordinary tests.
+
+```markdown
+## /kit-check Plan Confirmation
+
+### 检查目标
+- <changed files / project area / release candidate>
+
+### 检查范围
+- Hedge mode: <quick|deep|security>
+- Edge cases: <input/path/state/concurrency/security/product semantics>
+- Evidence to inspect: <Run Closure, logs, screenshots, test reports>
+
+### 不检查
+- <explicit exclusions>
+
+### 可能影响
+- <time cost, files read, possible fix recommendations>
+
+### 用户确认
+请回复 "确认" 才开始 `/kit-check`。
+```
+
+If the user does not confirm, stop with Phase Closure and next command `/kit-status` or `/kit-run` as appropriate.
+
+Core responsibilities:
+
+- Run Hedge quick/deep/security adversarial checks.
+- Test edge cases that ordinary tests miss: empty input, oversized input, concurrency, path boundaries, permissions, cancellation, stale state, and state pollution.
+- Check semantic risks: wrong requirement interpretation, command-boundary confusion, fake completion, mock residue, missing persistence, and tests that prove the wrong behavior.
+- Produce a go/fix/block judgment.
+- Route failures back to `/kit-run fix <scope>` with a prioritized fix list.
 
 ## Quality Flywheel
 
 The core quality loop:
 
 ```
-检查 → hedge 攻击 → 产出报告 → [条件确认] → 修复 → 自动回归 → 沉淀
+/kit-run Run Closure → Hedge/edge review → quality report → go/fix/block → /kit-run fix or /kit-test
 ```
 
 ### Hedge 对抗性测试集成
@@ -61,6 +100,53 @@ Merge hedge findings into quality report
 - **P0 or high-risk fix found** → Pause, wait for user confirmation before fixing
 
 Do not block the user for cosmetic issues. Do not silently fix critical issues without confirmation.
+
+---
+
+## Edge Case Review
+
+Run edge checks based on the changed surface:
+
+- Input: empty, null, oversized, unicode/control characters, malformed JSON/Markdown.
+- Filesystem: Windows paths, spaces, traversal attempts, missing files, read-only files.
+- State: repeated runs, interrupted runs, stale `.kit/` state, dirty worktree, lock files.
+- Concurrency: two runs/checks in parallel, overlapping agent outputs, shared temp directories.
+- Product semantics: requirement implemented in the wrong workflow, acceptance criteria skipped, test asserts mock behavior.
+- Security: secrets, destructive commands, external writes, auth/session assumptions.
+
+These checks are why `/kit-check` runs after `/kit-run`; they are not a replacement for basic acceptance.
+
+---
+
+## Go / Fix / Block Judgment
+
+Every `/kit-check` ends with one of:
+
+| Judgment | Meaning | Next Command |
+|---|---|---|
+| `go` | No P0/P1 and Hedge/edge checks passed or risks accepted | `/kit-test` or `/kit-pack` |
+| `fix` | Issues found but implementation can continue locally | `/kit-run fix <scope>` |
+| `block` | User/product/security decision required | Ask one concrete question, then route back |
+
+Report format:
+
+```markdown
+## Check Judgment
+
+结论: <go|fix|block>
+
+### Hedge / Edge Findings
+| Severity | Area | Issue | Evidence | Fix |
+|---|---|---|---|---|
+
+### 回流计划
+1. <fix order>
+
+### 下一条命令
+`/kit-run fix <scope>` or `/kit-test`
+```
+
+Do not end with vague advice. Always provide the next KIT command.
 
 ---
 

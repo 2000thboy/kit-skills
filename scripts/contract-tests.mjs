@@ -185,6 +185,47 @@ test("skill-package audit stays free of P0/P1", () => {
   assert(report.p1.length === 0, `unexpected P1: ${report.p1.map((issue) => issue.code).join(", ")}`);
 });
 
+test("phase closure and run handoff contracts are documented", () => {
+  const corpus = [
+    fs.readFileSync(path.join(root, "SKILL.md"), "utf8"),
+    fs.readFileSync(path.join(root, "README.md"), "utf8"),
+    fs.readFileSync(path.join(root, "modes", "kit.md"), "utf8"),
+    fs.readFileSync(path.join(root, "modes", "run.md"), "utf8")
+  ].join("\n");
+  assert(corpus.includes("Phase Start"), "missing Phase Start contract");
+  assert(corpus.includes("Phase Closure"), "missing Phase Closure contract");
+  assert(corpus.includes("Requirement-to-Run Handoff"), "missing Requirement-to-Run Handoff contract");
+  assert(corpus.includes("/kit-run start"), "missing explicit /kit-run start bridge");
+});
+
+test("kit-run and kit-check responsibility boundary is documented", () => {
+  const readme = fs.readFileSync(path.join(root, "README.md"), "utf8");
+  const runMode = fs.readFileSync(path.join(root, "modes", "run.md"), "utf8");
+  const checkMode = fs.readFileSync(path.join(root, "modes", "check.md"), "utf8");
+
+  assert(readme.includes("先 `/kit-run`") && readme.includes("再 `/kit-check`"), "README must explain run before check");
+  assert(runMode.includes("Basic Acceptance Checklist"), "run mode missing basic acceptance checklist");
+  assert(runMode.includes("Run Closure"), "run mode missing Run Closure");
+  assert(runMode.includes("/kit-check diff"), "run mode missing handoff to /kit-check diff");
+  assert(checkMode.includes("Hedge") && checkMode.includes("Edge Case Review"), "check mode missing Hedge/edge responsibilities");
+  assert(checkMode.includes("go/fix/block") || checkMode.includes("go / fix / block"), "check mode missing go/fix/block judgment");
+  assert(checkMode.includes("/kit-run fix <scope>"), "check mode missing return path to /kit-run fix");
+});
+
+test("phase start, check plan, delivery contents, and Codex goal gates are documented", () => {
+  const corpus = [
+    fs.readFileSync(path.join(root, "SKILL.md"), "utf8"),
+    fs.readFileSync(path.join(root, "README.md"), "utf8"),
+    fs.readFileSync(path.join(root, "modes", "kit.md"), "utf8"),
+    fs.readFileSync(path.join(root, "modes", "check.md"), "utf8")
+  ].join("\n");
+  assert(corpus.includes("Phase Start"), "missing phase start report");
+  assert(corpus.includes("/kit-check Plan Confirmation"), "missing kit-check plan confirmation");
+  assert(corpus.includes("Delivery Contents Gate"), "missing delivery contents gate");
+  assert(corpus.includes("Goal mode") || corpus.includes("Goal Mode"), "missing Codex Goal mode hint");
+  assert(corpus.includes("included") && corpus.includes("excluded") && corpus.includes("known risks"), "delivery contents must list included/excluded/known risks");
+});
+
 test("pack dry-run JSON contains portable runtime files", () => {
   const npmCli = process.env.npm_execpath;
   assert(npmCli && fs.existsSync(npmCli), "npm_execpath is unavailable; run this test through npm run check:contract");

@@ -14,8 +14,8 @@ KIT v2.0 提供八个命令，覆盖产品到开发的完整闭环：
 /kit        → 产品层（建档 / 归档 / 脑暴 / 沙盒）— 智能识别场景
 /kit-new    → 新建层（全新项目 / 从零建档 / 输入需求）— 跳过状态检查，直接开始
 /kit-status → 状态层（检查规范 / 方向漂移 / 归档确认）— 只读审计，不编码
-/kit-run    → 执行层（编码 / 测试 / 运行）— 必须经用户确认后才能启动
-/kit-check  → 质量层（检查 / 研究 / 规划）
+/kit-run    → 执行层（实现 / 自测 / 修复 / 基础验收）— 一口气做到可审查候选
+/kit-check  → 深度审查层（Hedge / 极端场景 / 语义风险 / go-no-go）
 /kit-loop   → 自动巡航（自我迭代 / 时间盒）
 /kit-pack   → 交付打包层（清理 / 封装 / 生成 V1 可分享交付包）
 /kit-test   → 验收层（边界确认 / 临时验收包 / 验收测试 / 测试报告）
@@ -28,6 +28,21 @@ KIT v2.0 提供八个命令，覆盖产品到开发的完整闭环：
          ↑______________________________________________________________________________________________↓
          └────────────────────────────────── /kit-status 检查方向 ───────────────────────────────────────┘
 ```
+
+每个阶段启动必须给出 `Phase Start`，结束必须给出 `Phase Closure`。启动时说清目标、输入、本阶段会做什么、需要用户确认什么；结束时说清本阶段完成了什么、AI 的评价、剩余风险、建议下一步、下一条命令。KIT 不能只说“已完成”，也不能让用户自己猜下一步。
+
+如果你在 Codex 里使用 KIT 做长阶段任务，建议使用 Codex Goal 模式，把阶段目标、预算和停止条件固定住，避免中途漂移。
+
+运行顺序必须清楚：先 `/kit-run` 完成实现、自测和基础验收，形成可审查候选；再 `/kit-check` 做 Hedge 对冲、极端场景和质量裁决。`/kit-check` 不是普通测试命令，它判断能不能继续进入 `/kit-test` 或 `/kit-pack`。
+
+需求确认完成后必须给出 `Requirement-to-Run Handoff`，再进入 `/kit-run`：
+
+1. 计划总览：产品目标、目标用户、本轮范围、明确不做、验收标准。
+2. 全需求审查：已确认需求、仍需用户决定的问题、PM 风险、技术路线。
+3. 执行计划：任务顺序、第一项任务、负责人/工具、验证命令。
+4. 命令衔接：明确下一条命令，通常是 `/kit-run start`；如果不能运行，必须说明应回到 `/kit-check`、`/kit-status` 还是继续 brainstorm。
+
+交付前最重要的是 `Delivery Contents Gate`：在 `/kit-test`、`/kit-pack`、归档或交接前，必须确认“交付内容物”。至少列出包含什么、不包含什么、证据在哪里、怎么运行/打开、已知风险是什么。用户未确认内容物时，不得声称可交付。
 
 ## 核心用途
 
@@ -468,7 +483,8 @@ node C:\tools\kit-skills\bin\spec-loop-kit.mjs init --cwd D:\projects\my-claude-
 1. **Brainstorm（不可跳过）**：确认目标用户、核心痛点、预期输出
 2. **分类确认**：确定开发类型（skill/workflow/app 等）和规模
 3. **生成三件套**：PRD → PM Audit → 用户确认 → SPEC → PM Audit → 用户确认 → CHECKLIST → PM Audit → 用户确认
-4. **用户最终确认**：明确说"确认"后，才能进入 `/kit-run`
+4. **用户最终确认**：明确说"确认"后，输出 Requirement-to-Run Handoff
+5. **命令衔接**：无阻塞时明确给出 `/kit-run start`
 
 **与 `/kit` 的区别**：
 
@@ -536,12 +552,38 @@ node C:\tools\kit-skills\bin\spec-loop-kit.mjs init --cwd D:\projects\my-claude-
 | **3. 目标一致性** | 用户本次需求与 `.plan/PRD.md` 目标一致，无漂移 | **停止**。指出漂移点，问用户”继续原目标 / 调整目标 / 开新项目？” |
 | **4. 需求清晰度** | 用户当前需求足够具体，AI 能说出”要改哪些文件、预期结果是什么” | **停止**。触发头脑风暴，追问到需求清晰 |
 | **5. 用户确认** | 用户明确说”确认”或”可以开始做” | **停止**。重复计划和预期改动，等用户确认 |
+| **6. 交接报告** | 已输出 Requirement-to-Run Handoff，包含计划总览、全需求审查、执行计划、下一命令 | **停止**。回到 `/kit` 补交接报告 |
 
 **禁止行为**：
 - 未读取 `.plan/` 直接开始写代码
 - 用户说”快点做”、”直接改”就跳过确认门
 - 用 “ok”、”好的”、”行” 代替用户确认
 - 在需求模糊时猜测用户意图并实施
+
+### `/kit-run` 的基础验收职责
+
+`/kit-run` 不是只写代码。它要一口气完成：
+
+1. 实现已确认的当前任务。
+2. 运行项目基础检查：build/type/lint 或项目等价命令。
+3. 运行项目测试：unit/integration/e2e 中当前项目已有且相关的部分。
+4. 执行 smoke run：确认应用、CLI、workflow 或 skill 的关键入口能启动。
+5. 验证核心需求路径：对照 CHECKLIST/PLAN，确认本轮需求真的接入真实调用链。
+6. 遇到基础验收失败时，自动回修并再跑一次，不把第一次失败直接甩给用户。
+7. 输出 `Run Closure`，说明是否可以进入 `/kit-check diff`。
+
+`/kit-run` 结束后通常下一步是 `/kit-check diff`；如果基础验收未过，下一步仍是 `/kit-run fix <scope>`。
+
+### `/kit-check` 的深度审查职责
+
+`/kit-check` 接在 `/kit-run` 后面。它不重复普通测试，而是做深度判断：
+
+- 启动前必须输出 `/kit-check Plan Confirmation`，列出检查目标、范围、Hedge 模式、极端场景、证据来源和不检查项，并等用户确认。
+- Hedge quick/deep/security 对冲检查。
+- 极端场景：空输入、超长输入、并发、路径、权限、状态污染、取消中断。
+- 语义风险：需求是否被误解、命令边界是否混淆、是否出现假完成。
+- 质量裁决：go / fix / block，并给出回流命令。
+- 如果发现 P0/P1，输出 `/kit-run fix <scope>`；如果通过，输出 `/kit-test` 或 `/kit-pack`。
 
 ---
 
@@ -555,8 +597,8 @@ node C:\tools\kit-skills\bin\spec-loop-kit.mjs init --cwd D:\projects\my-claude-
 1. **先头脑风暴**（`/kit brainstorm`）：追问用户核心痛点、目标用户、第一条 workflow、风险点
 2. **分类建档**（`/kit init`）：确定开发类型（skill/workflow/app 等）
 3. **生成三件套**（PRD/SPEC/CHECKLIST）
-4. **用户确认**：用户明确说”确认”后，才能进入 `/kit-run`
-5. **开发执行**（`/kit-run`）
+4. **用户确认**：用户明确说”确认”后，输出 Requirement-to-Run Handoff
+5. **开发执行**（`/kit-run start`）
 
 **头脑风暴不可跳过**。即使用户说”我很清楚，直接做”，AI 也必须至少确认：目标用户是谁、核心痛点是什么、预期输出是什么。这三个问题答不上来就是不清楚。
 
@@ -569,7 +611,7 @@ node C:\tools\kit-skills\bin\spec-loop-kit.mjs init --cwd D:\projects\my-claude-
 2. **检查目标一致性**：用户本次需求与已建档目标是否有差异
 3. **如用户目标不清晰或与当前 PLAN 有差异 → 必须先头脑风暴到用户足够清楚**
 4. **PLAN 确认后才能继续开发**
-5. **用户明确确认后**，才能进入 `/kit-run`
+5. **用户明确确认后**，输出 Requirement-to-Run Handoff，再进入 `/kit-run start`
 
 AI 不得因”快点”、”直接做”跳过头脑风暴和确认门。
 
@@ -623,6 +665,13 @@ AI 不得因”快点”、”直接做”跳过头脑风暴和确认门。
   • 文档: README.md, SKILL.md, AGENTS.md/CLAUDE.md
   • 必要证据: 验收报告、关键截图/日志索引、版本信息
   • 版本: .kit/version.json
+
+交付内容物确认:
+  • 包含什么
+  • 不包含什么
+  • 证据和报告
+  • 使用/运行方式
+  • 已知风险
 
 排除项:
   • 临时文件: logs/, .omc/, .pilotdeck-runtime/
@@ -889,6 +938,10 @@ npm pack --dry-run
 
 本次更新围绕 Hedge 语义检查后的硬问题修复：
 
+- 增加 `Phase Start`、`Phase Closure` 和 `Requirement-to-Run Handoff`，让每个 phase 启动和结束都有目标、总结、评价、风险、建议和下一条命令。
+- 增加 `Delivery Contents Gate`：验收、打包、归档或交接前必须确认交付内容物；Codex 长阶段建议使用 Goal 模式。
+- 重新压清 `/kit-run` 与 `/kit-check` 边界：`/kit-run` 负责实现、自测、修复和基础验收；`/kit-check` 负责 Hedge、极端场景、语义风险和 go/no-go 判断。
+- 明确需求确认后必须先列出计划总览、全需求审查和执行计划，再衔接 `/kit-run start`。
 - `/kit-pack` 的破坏性清理示例增加路径预览、用户确认和 Windows PowerShell 安全提示；`rm -rf` 不再作为可直接盲复制的步骤。
 - `/kit-run test` 明确为开发期项目测试；`/kit-test` 保持为交付前验收层，负责版本边界、临时验收包、验收测试和报告。
 - Hedge 缺失时不能声称最终 ready；必须记录 `adversarial_check: incomplete`，并由用户显式接受风险。
