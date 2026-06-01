@@ -103,7 +103,70 @@ Use this mode when the user wants to explore, shape, compare, or pressure-test a
 
 Brainstorm output must stay product-development oriented. Do not drift into generic creativity chat.
 
-Required output:
+### 头脑风暴偏好确认（首次使用）
+
+进入 brainstorm 前，先确认用户偏好的沟通方式（记录到 `.kit/config.json` 的 `brainstorm_mode`）：
+
+```text
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🧠 头脑风暴偏好确认
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+请选择你偏好的沟通方式：
+
+[ ] "逐个确认"（推荐初学者）
+    → 我一次问一个问题，你回答后再继续
+    → 不容易遗漏，但回合数多
+
+[ ] "一口气输出"（适合有经验用户）
+    → 我先输出完整分析，你再统一反馈
+    → 速度快，但需要你能快速消化信息
+
+选择后我会记住你的偏好，后续自动使用。
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+**两种模式的流程差异：**
+
+| 环节 | 逐个确认模式 | 一口气输出模式 |
+|---|---|---|
+| 问题方式 | 一次一个问题，等回答 | 一轮输出所有分析 |
+| 方案对比 | 每提出一个方案等反馈 | 2-3个方案一起出 |
+| 设计确认 | 每部分确认后再继续 | 完整设计输出后统一确认 |
+| 适用用户 | 需求还不清楚、初学者 | 已有思路、想快速验证 |
+
+---
+
+### 分解门：项目太大先拆分
+
+在深入需求前，先判断项目规模：
+
+**如果用户描述包含多个独立子系统**（如"做一个平台，含聊天、文件存储、计费、数据分析"）：
+- **必须立即 flag**："这个项目包含多个独立子系统，建议先拆分"
+- 输出拆分建议：独立模块、依赖关系、构建顺序
+- 让用户选择："先整体规划再拆分"或"先做一个模块"
+- **禁止**：不拆分就直接细化所有模块的需求
+
+**拆分输出格式：**
+```text
+⚠️ 检测到项目包含多个独立子系统：
+
+【建议拆分】
+| 模块 | 独立程度 | 依赖 | 建议顺序 |
+|------|---------|------|---------|
+| A | 高 | 无 | 1 |
+| B | 中 | 依赖 A | 2 |
+| C | 低 | 依赖 A,B | 3 |
+
+【选项】
+- "先整体规划" → 输出高层架构，不细化每个模块
+- "先做模块 X" → 只对模块 X 做详细 brainstorm
+- "全部一起做" → 标记风险：范围大、周期长、易失控
+```
+
+---
+
+### Required output
 
 - development object classification: skill, workflow, CLI harness, frontend/backend app, OMC orchestration, SDK integration, design prototype, or unknown
 - product hypothesis: target user, core pain, proposed workflow, expected outcome
@@ -112,6 +175,7 @@ Required output:
 - architecture implication: what technical shape each option implies, explained in product terms
 - no-return points: decisions that become expensive to reverse after 建档
 - benchmark references: comparable product, workflow, or pattern when useful
+- **feature audit (膨胀功能识别)**: 列出用户提到但可能不必要的功能，标记待用户确认
 - next action: `建档`, more brainstorm, reject/defer, or split into a separate project
 
 ### 模型选择评估（Model Selection Assessment）
@@ -329,7 +393,7 @@ evals/                   # AI full-program self-test (on-demand)
 ### 三件套生成流程（带确认门）
 
 ```
-Brainstorm 完成 → 分类确认(scale) → 生成 PRD → PM Audit → 用户确认 → 生成 SPEC → PM Audit → 用户确认 → 生成 CHECKLIST → PM Audit → 用户确认 → kitrun
+Brainstorm 完成 → 分类确认(scale) → 生成 PRD → PM Audit → Spec Self-Review → YAGNI 门 → 用户确认 → 生成 SPEC → PM Audit → Spec Self-Review → YAGNI 门 → 用户确认 → 生成 CHECKLIST → PM Audit → Spec Self-Review → YAGNI 门 → 用户确认 → kitrun
 ```
 
 **Scale-Aware 确认门:**
@@ -373,18 +437,77 @@ Brainstorm 完成 → 分类确认(scale) → 生成 PRD → PM Audit → 用户
 | # | 问题 | 修复建议 | 验证方式 |
 ```
 
+### Spec Self-Review（自查门）
+
+PM Audit 修复后、用户确认前，AI 必须对文档做一次快速自查：
+
+**自查 4 项：**
+1. **占位符扫描**：文档中是否有 "TBD"、"TODO"、"待补充"、"稍后确定"？
+2. **内部一致性**：PRD 的目标用户是否和 SPEC 的技术方案匹配？CHECKLIST 的任务是否覆盖 PRD 的验收标准？
+3. **范围检查**：这份文档是否聚焦？有没有把不该在这个阶段决定的内容塞进来？
+4. **歧义检查**：任何需求是否可能被两种不同方式理解？如果是，必须明确选一种并写出来。
+
+**自查动作**：发现问题 → 立即修复 → 无需重新审计，直接修复后进入用户确认
+
+---
+
+### 膨胀功能识别（YAGNI 门，需用户确认）
+
+**在 PM Audit 之后，识别用户提到但可能不必要的功能：**
+
+```text
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔪 膨胀功能识别（YAGNI）
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+以下功能在当前阶段可能过度设计：
+
+| # | 功能 | 用户原话 | 为什么可能不需要 | 建议 |
+|---|------|---------|----------------|------|
+| 1 | XX功能 | "最好能..." | 核心 workflow 不依赖 | 放到 V2 |
+| 2 | YY配置 | "可以支持..." | 增加复杂度，首版用默认值即可 | 删除 |
+
+请确认：
+- "同意删减" → 按建议调整文档
+- "保留全部" → 标记风险：范围膨胀
+- "部分保留" → 指出哪些保留
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+**规则：**
+- AI 列出建议，但**不自动删除**，等用户确认
+- 用户同意删减后，更新 PRD/SPEC/CHECKLIST 并记录到 `.kit/decisions.md`
+- 用户选择"保留全部"时，标记范围膨胀风险到 `.kit/audit-log.md`
+
+---
+
 ### 用户确认门规则
 
-**确认门 AskUserQuestion:**
+**确认门 AskUserQuestion（改进版）：**
 ```
-PM Audit 完成，发现 {🔴N / 🟠N / 🟡N} 项。
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📋 {PRD/SPEC/CHECKLIST} 确认
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-[如 🔴>0] 必须先修复阻断项才能继续。
-[如 🔴=0] 请确认当前 {PRD/SPEC/CHECKLIST}：
+PM Audit: 🔴{N} 🟠{N} 🟡{N}
+Spec Self-Review: ✅ 通过
+膨胀功能识别: {已处理 / 无需处理}
+
+文档已写入：.plan/{文件名}.md
+
+请先阅读文档内容，再选择：
 - 选项 1: "确认" → 通过，继续下一阶段
-- 选项 2: "修改" → 记录反馈到 .kit/feedback.md，重新生成
+- 选项 2: "修改" → 告诉我改哪里，记录到 .kit/feedback.md
 - 选项 3: "重生成" → 回到当前阶段起点重新生成
+
+（文档摘要如下...）
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
+
+**关键改进**：
+- 不只是问"确认吗"，而是**让用户先看文件内容**
+- 提供文档摘要，但鼓励用户打开文件 review
+- 只有用户说"确认"才算通过
 
 **确认标记:** 每个文档底部添加
 ```markdown
