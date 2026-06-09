@@ -4,6 +4,7 @@ Use this when the target user, deployment, payment, login, map, SMS, content, or
 
 ## Product Defaults
 
+- Customer-facing handoff documents must be Simplified Chinese first: `README.md`, `HANDOFF.md`, `.plan/PRD.md`, `.plan/SPEC.md`, `.plan/CHECKLIST.md`, `docs/ui-ux/ACCEPTANCE.md`, acceptance reports, and four-role review reports. Keep commands, paths, API field names, and required English terms unchanged.
 - Prefer WeChat-first user journeys when the user expects consumer or SMB adoption: WeChat login, mini program path, public account/service account, and share card behavior.
 - For paid products, plan for WeChat Pay and Alipay separately. Do not assume Stripe-only or overseas card payment is acceptable.
 - For public web deployment on mainland infrastructure, record ICP filing status, domain owner, entity type, hosting provider, and whether public security filing is relevant.
@@ -20,6 +21,7 @@ Use this when the target user, deployment, payment, login, map, SMS, content, or
 
 ## Acceptance Evidence
 
+- Chinese Delivery Docs Gate: block `/kit-test` when mainland/customer-facing delivery docs are English-first or template-like.
 - Mainland smoke path: WeChat browser or mini program path, desktop browser path if applicable.
 - Payment evidence: sandbox order, callback, refund or cancellation, reconciliation export.
 - Handoff evidence: deployment region, domain/ICP status, admin account creation, backup/export path, customer support procedure.

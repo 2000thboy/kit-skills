@@ -53,6 +53,205 @@ function parseJson(text, label) {
   }
 }
 
+const zhReadme = `# acceptance-app 中文验收应用
+
+项目版本: \`0.1.0\`
+
+这是面向中文用户的 V1 演示项目 README。README 只作为用户指南和 GitHub 首页入口，不写阶段报告、验收报告或交接报告。
+
+## 功能
+
+- 可运行的本地应用。
+- 中文使用说明。
+- 基础测试命令。
+- 验收材料索引。
+
+## 快速开始
+
+\`\`\`powershell
+npm test
+$env:PORT=4171; npm start
+\`\`\`
+
+## 怎么使用
+
+1. 打开本地页面。
+2. 按页面提示完成核心流程。
+3. 运行测试确认项目可用。
+
+## 测试
+
+运行 \`npm test\`。
+
+## 项目结构
+
+\`\`\`text
+.
+├─ README.md
+├─ HANDOFF.md
+├─ .plan/
+└─ .test/
+\`\`\`
+
+## 验收材料在哪里
+
+报告和证据不放在 README 主体里。请查看 \`HANDOFF.md\`、\`.plan/\`、\`.test/ai/reports/\` 和 \`.test/ai/evidence/\`。
+`;
+
+const zhHandoff = `# 交接说明：acceptance-app 中文验收应用
+
+日期: 2026-06-01
+
+## 运行方式
+
+\`\`\`powershell
+npm test
+$env:PORT=4171; npm start
+\`\`\`
+
+打开 \`http://localhost:4171\`。这是本地示例端口，实际交付时以运行日志中的端口为准。
+
+## 已交付内容
+
+- 中文可读的项目入口说明。
+- 可运行的 V1 演示应用。
+- 计划、规格、任务清单和验收证据。
+- 桌面端、移动端、空态和成功态截图。
+- 面向中国大陆客户的交付风险说明。
+
+## 交付内容物
+
+状态: 已确认用于 V1 客户交接。
+
+包含项、不包含项、运行方式、验收证据和已知风险与 README、计划文档、验收报告保持一致。
+
+## 需求到执行交接
+
+已确认需求: 这是面向中国大陆客户交接的 V1 演示项目，用户已经确认范围、边界和验收方式。
+
+计划: \`.plan/PRD.md\`、\`.plan/SPEC.md\`、\`.plan/CHECKLIST.md\` 已关闭核心任务，下一步按命令链执行。
+
+下一步命令: \`/kit-run start -> /kit-check diff -> /kit-test -> /kit-pack\`
+`;
+
+const zhPrd = `# PRD - 中文验收应用
+
+## 产品目标
+
+为中国大陆客户提供一个可以当天评审的 V1 演示应用。用户需要看到清晰的业务目标、运行方式、交付内容、验收证据和后续上线风险。
+
+## 用户价值
+
+业务负责人可以用中文理解项目做了什么、怎么打开、哪些功能已经完成、哪些内容不属于本次交付。开发者可以根据计划文档继续实现或修复。
+
+## 范围
+
+包含应用主体、中文交付文档、基础测试、截图证据和四角色评分。不包含真实支付、生产部署、正式账号体系和线上客户数据。
+
+✅ 用户确认 | 时间: 2026-06-01 | 版本: 0.1.0
+`;
+
+const zhSpec = `# SPEC - 中文验收应用
+
+## 技术方案
+
+项目使用 Node.js 测试脚本和本地文件证据完成 V1 验收。交付路径为 \`/kit-run -> /kit-check -> /kit-test -> /kit-pack\`，每一步都必须写入状态文件和报告。
+
+## 章程一致性
+
+README.md、AGENTS.md、.workflow/README.md、.test/README.md、PRD、SPEC、CHECKLIST 和 .kit/version.json 的目标、范围、版本和证据路径必须一致。
+
+## Capability Skill Inventory
+
+## 能力与工具
+
+宿主状态: Codex 已安装 kit-skills 和 deep-research。项目状态: 不需要项目内安装 skill。批准状态: 本夹具不需要额外批准。证据: 合同测试。
+
+## 登录浏览器路径
+
+如果验收涉及登录态浏览器，标准路径是使用项目指定浏览器自动化或 OpenCLI；认证材料只保存在用户环境，不进入交付包。当前夹具没有真实登录账号，证据路径为 .test/ai/evidence。
+
+## 调用状态简报
+
+当前状态: V1 验收。终点: Definition of Done with Stop Gate。question-bank.json SB1 已被引用。
+
+## 归档交互门
+
+归档前确认: PRD、SPEC、CHECKLIST、.kit、.workflow、.test、README、HANDOFF 和实际文件必须对齐。只有 validate 没有 P0/P1 且事实一致时，才可以减少额外追问。
+
+## 框架路由决策
+
+本夹具只使用 KIT。OpenSpec 和 Super Dev 对这个小型后端夹具不是必需项。
+
+## Model / Agent Risk Ledger
+
+## 模型与智能体风险账本
+
+Provider/model version: none。Cost budget quota rate limit: none。Context token chunk truncation: none。Tool permission policy: allowlist only, denylist live action and dangerous operations。Eval isolation: contract temp directory。Prompt drift policy / 提示词/人设漂移策略: not applicable。Trace sensitive data policy: no traces retained。Reproducibility policy / 可复现性策略: deterministic fixture。Content safety: no content generation。Evidence retention: .test/ai/reports。
+
+✅ 用户确认 | 时间: 2026-06-01 | 版本: 0.1.0
+`;
+
+const zhChecklist = `# CHECKLIST - 中文验收应用
+
+任务列表前置规划
+停止门/验收门
+
+- [x] 完成应用实现。
+- [x] 运行 npm test。
+- [x] README、HANDOFF、PRD、SPEC、CHECKLIST、UI 验收和验收报告均为中文优先。
+- [x] 保存桌面端、移动端、空态和成功态截图证据。
+- [x] 明确包含内容、不包含内容、运行方式、验收证据、已知风险和下一步命令。
+- [x] 确认该清单可以让中文用户直接判断当前版本是否适合进入交付打包。
+
+✅ 用户确认 | 时间: 2026-06-01 | 版本: 0.1.0
+`;
+
+const zhUiAcceptance = `# UI 验收证据
+
+## 结论
+
+桌面端、移动端、空态、成功态和错误态截图已经保存。页面需要让中国大陆客户在不阅读代码的情况下理解当前状态、下一步动作和交付边界。
+
+## 检查项
+
+- 桌面端截图存在且能看到主要业务流程。
+- 移动端截图使用完整页面证据，不只截首屏。
+- 空态提供下一步指引。
+- 成功态或错误态提供明确反馈。
+- 中文文案优先，保留必要命令、路径和 API 英文。
+`;
+
+const zhAcceptanceReport = `# /kit-test 验收报告
+
+日期: 2026-06-01
+
+## 结论
+
+V1 演示包通过基础验收，可以进入 /kit-pack。该结论只代表客户评审和交接前验收，不代表已经完成生产上线。
+
+## 证据
+
+- npm test 已通过。
+- 四角色评分均不低于 95。
+- 桌面端、移动端、空态和成功态截图已保存。
+- README、HANDOFF、计划文档和验收说明均为中文优先。
+
+## 风险
+
+生产部署前还需要真实域名、账号、安全、备份、监控、客户确认和合规检查。
+`;
+
+const zhFourRoleReview = `# 四角色评审
+
+| 角色 | 分数 | 判断 |
+| --- | ---: | --- |
+| PM | 95 | 通过。需求边界、交付内容物和客户验收路径清晰。 |
+| Code | 95 | 通过。测试命令、状态文件和包输入快照可复核。 |
+| Frontend | 95 | 通过。桌面端、移动端、空态和成功态证据完整。 |
+| Backend | 95 | 通过。运行、检查、验收和打包命令链清晰。 |
+`;
+
 test("help exits 0 and lists public commands", () => {
   const result = run(["--help"]);
   assert(result.code === 0, `expected exit 0, got ${result.code}`);
@@ -156,7 +355,8 @@ test("run/check commands write executable phase state reports", () => {
   assert(blockedPayload.state === "blocked-before-run", "run should record blocked-before-run state");
   assert(fs.existsSync(path.join(project, ".kit", "run-state.json")), "missing run state file after blocked run");
 
-  fs.writeFileSync(path.join(project, "README.md"), "# acceptance app\n\nProject version: `0.1.0`\n\n## Requirement-to-Run Handoff\nConfirmed requirements: fixture is ready for /kit-run.\nPlan: CHECKLIST is closed.\nNext: /kit-run -> /kit-check -> /kit-test -> /kit-pack.\n\n## Delivery Contents Gate\nIncluded: app files\nExcluded: live deploy\nKnown risks: demo only\nEvidence: tests and screenshots\n", "utf8");
+  fs.writeFileSync(path.join(project, "README.md"), zhReadme, "utf8");
+  fs.writeFileSync(path.join(project, "HANDOFF.md"), zhHandoff, "utf8");
   fs.writeFileSync(path.join(project, ".plan", "CHECKLIST.md"), "# CHECKLIST\n\n任务列表前置规划\n停止门/验收门\n\n- [x] Implement app\n- [x] Run tests\n", "utf8");
 
   const runResult = run(["run", "--cwd", project, "--json"]);
@@ -183,7 +383,7 @@ test("run blocks when package has no npm test script", () => {
   const init = run(["init", "--cwd", project, "--owner", "tester", "--level", "2", "--host", "generic", "--skip-brainstorm"]);
   assert(init.code === 0, `init failed: ${init.stderr}`);
   fs.writeFileSync(path.join(project, "package.json"), JSON.stringify({ scripts: { lint: "node --version" } }, null, 2), "utf8");
-  fs.appendFileSync(path.join(project, "README.md"), "\n## Delivery Contents Gate\nIncluded: app files\nExcluded: live deploy\nKnown risks: demo only\nEvidence: tests and screenshots\n", "utf8");
+  fs.writeFileSync(path.join(project, "HANDOFF.md"), `${zhHandoff}\n\n## 交付内容物\n包含: 应用文件。\n不包含: 生产部署。\n已知风险: 仅用于演示。\n证据: 测试和截图。\n`, "utf8");
   fs.writeFileSync(path.join(project, ".plan", "CHECKLIST.md"), "# CHECKLIST\n\n任务列表前置规划\n停止门/验收门\n\n- [x] Implement app\n", "utf8");
 
   const result = run(["run", "--cwd", project, "--json"]);
@@ -194,22 +394,22 @@ test("run blocks when package has no npm test script", () => {
 });
 
 test("test/pack commands require executable acceptance state", () => {
-  const project = path.join(tmpRoot, "acceptance-app");
+  const project = path.join(tmpRoot, "acceptance");
   const init = run(["init", "--cwd", project, "--owner", "tester", "--level", "2", "--host", "generic", "--skip-brainstorm", "--with-user"]);
   assert(init.code === 0, `init failed: ${init.stderr}`);
   fs.writeFileSync(path.join(project, "package.json"), JSON.stringify({ scripts: { test: "node --version" } }, null, 2), "utf8");
-  fs.writeFileSync(path.join(project, "HANDOFF.md"), "# HANDOFF\n\nDelivery Contents Gate confirmed.\n", "utf8");
-  fs.writeFileSync(path.join(project, "README.md"), "# acceptance app\n\nProject version: `0.1.0`\n\n## Requirement-to-Run Handoff\nConfirmed requirements: fixture is ready for /kit-run.\nPlan: CHECKLIST is closed.\nNext: /kit-run -> /kit-check -> /kit-test -> /kit-pack.\n\n## Delivery Contents Gate\nIncluded: app files\nExcluded: live deploy\nKnown risks: demo only\nEvidence: tests and screenshots\n", "utf8");
-  fs.writeFileSync(path.join(project, "AGENTS.md"), "# AGENTS\n\nProject version: `0.1.0`\nUse .plan, .kit, .workflow, and .test as project facts.\n", "utf8");
+  fs.writeFileSync(path.join(project, "HANDOFF.md"), zhHandoff, "utf8");
+  fs.writeFileSync(path.join(project, "README.md"), zhReadme, "utf8");
+  fs.writeFileSync(path.join(project, "AGENTS.md"), "# AGENTS\n\nProject version: `0.1.0`\n使用 .plan、.kit、.workflow 和 .test 作为项目事实源。\n", "utf8");
   fs.mkdirSync(path.join(project, ".workflow"), { recursive: true });
-  fs.writeFileSync(path.join(project, ".workflow", "README.md"), "# Workflow\n\nProject version: `0.1.0`\nActive workflow entry: `.workflow/README.md`.\n", "utf8");
-  fs.writeFileSync(path.join(project, ".plan", "PRD.md"), "# PRD\n\nGoal: demo app.\n\n✅ 用户确认 | 时间: 2026-06-01 | 版本: 0.1.0\n", "utf8");
-  fs.writeFileSync(path.join(project, ".plan", "SPEC.md"), "# SPEC\n\nHandoff routed through /kit-run -> /kit-check -> /kit-test -> /kit-pack.\n\n## Charter Consistency\nREADME.md, AGENTS.md, .workflow/README.md, .test/README.md, PRD, SPEC, CHECKLIST, and .kit/version.json are aligned.\n\n## Capability Skill Inventory\nHost status: Codex with kit-skills and deep-research available. Project status: no project-local skill install required. Install target: none. Approval: not needed for fixture. Evidence: contract test.\n\n## Invocation Status Brief\n当前状态: V1 acceptance. 终点: Definition of Done with Stop Gate. question-bank.json SB1 referenced.\n\n## Archive Interaction Gate\n归档前确认: PRD, SPEC, CHECKLIST, .kit, .workflow, .test, README, HANDOFF, and live files must be aligned. No extra question is needed only when validate has no P0/P1 and facts are aligned.\n\n## Framework Routing Decision\nUse KIT only for this fixture. OpenSpec and Super Dev are not needed for this small backend fixture.\n\n## Model / Agent Risk Ledger\nProvider/model version: none. Cost budget quota rate limit: none. Context token chunk truncation: none. Tool permission policy: allowlist only, denylist live action and dangerous operations. Eval isolation: contract temp directory. Prompt drift policy / 提示词/人设漂移策略: not applicable. Trace sensitive data policy: no traces retained. Reproducibility policy / 可复现性策略: deterministic fixture. Content safety: no content generation. Evidence retention: .test/ai/reports.\n\n✅ 用户确认 | 时间: 2026-06-01 | 版本: 0.1.0\n", "utf8");
-  fs.writeFileSync(path.join(project, ".plan", "CHECKLIST.md"), "# CHECKLIST\n\n任务列表前置规划\n停止门/验收门\n\n- [x] Implement app\n- [x] Run tests\n\n✅ 用户确认 | 时间: 2026-06-01 | 版本: 0.1.0\n", "utf8");
+  fs.writeFileSync(path.join(project, ".workflow", "README.md"), "# 工作流\n\n项目版本: `0.1.0`\n当前工作流入口: `.workflow/README.md`。\n", "utf8");
+  fs.writeFileSync(path.join(project, ".plan", "PRD.md"), zhPrd, "utf8");
+  fs.writeFileSync(path.join(project, ".plan", "SPEC.md"), zhSpec, "utf8");
+  fs.writeFileSync(path.join(project, ".plan", "CHECKLIST.md"), zhChecklist, "utf8");
   fs.mkdirSync(path.join(project, "docs", "ui-ux"), { recursive: true });
-  fs.writeFileSync(path.join(project, "docs", "ui-ux", "ACCEPTANCE.md"), "# UI Acceptance\n\nDesktop, mobile, empty, success, and error screenshots captured.\n", "utf8");
+  fs.writeFileSync(path.join(project, "docs", "ui-ux", "ACCEPTANCE.md"), zhUiAcceptance, "utf8");
   fs.mkdirSync(path.join(project, ".test", "ai", "reports"), { recursive: true });
-  fs.writeFileSync(path.join(project, ".test", "ai", "reports", "four-role-review.md"), "# Four-role Review\n\n| Role | Score | Judgment |\n| --- | ---: | --- |\n| PM | 95 | Pass. |\n| Code | 95 | Pass. |\n| Frontend | 95 | Pass. |\n| Backend | 95 | Pass. |\n", "utf8");
+  fs.writeFileSync(path.join(project, ".test", "ai", "reports", "four-role-review.md"), zhFourRoleReview, "utf8");
   for (const rel of [
     ".test/ai/reports/acceptance-20260601.md",
     ".test/ai/evidence/desktop.png",
@@ -220,7 +420,7 @@ test("test/pack commands require executable acceptance state", () => {
     ".test/ai/evidence/mobile-state-success.png"
   ]) {
     fs.mkdirSync(path.dirname(path.join(project, rel)), { recursive: true });
-    fs.writeFileSync(path.join(project, rel), "evidence", "utf8");
+    fs.writeFileSync(path.join(project, rel), rel.endsWith(".md") ? zhAcceptanceReport : "evidence", "utf8");
   }
   fs.mkdirSync(path.join(project, ".test", "ai", "sandboxes", "default", "_archive"), { recursive: true });
   const runResult = run(["run", "--cwd", project, "--json"]);
@@ -232,7 +432,7 @@ test("test/pack commands require executable acceptance state", () => {
     `check should naturally return go, got ${checkPayload.decision}: ${JSON.stringify(checkPayload.issues)}`
   );
   const testResult = run(["test", "--cwd", project, "--json"]);
-  assert(testResult.code === 0, `test should pass: ${testResult.stderr}`);
+  assert(testResult.code === 0, `test should pass: ${testResult.stderr} ${testResult.stdout}`);
   const testPayload = parseJson(testResult.stdout, "test payload");
   assert(testPayload.state === "acceptance-closed", "test should close acceptance");
   const packResult = run(["pack", "--cwd", project, "--json"]);
@@ -244,6 +444,74 @@ test("test/pack commands require executable acceptance state", () => {
   for (const rel of ["AGENTS.md", ".workflow/README.md", ".test/README.md", ".test/user/README.md", "docs/ui-ux/ACCEPTANCE.md"]) {
     assert(fs.existsSync(path.join(project, packPayload.evidence.package_dir, rel)), `pack should include ${rel}`);
   }
+});
+
+test("kit-test blocks mainland handoff when delivery docs are not Chinese first", () => {
+  const project = path.join(tmpRoot, "english-mainland-docs-app");
+  const init = run(["init", "--cwd", project, "--owner", "tester", "--level", "2", "--host", "generic", "--skip-brainstorm", "--with-user"]);
+  assert(init.code === 0, `init failed: ${init.stderr}`);
+  fs.writeFileSync(path.join(project, "package.json"), JSON.stringify({ scripts: { test: "node --version" } }, null, 2), "utf8");
+  fs.writeFileSync(path.join(project, "README.md"), "# English Mainland App\n\nThis V1 handoff is for mainland China customers and includes WeChat browser review, ICP notes, acceptance evidence, and delivery contents.\n\n## Requirement-to-Run Handoff\nConfirmed requirements: ready.\nPlan: closed.\nNext: /kit-run -> /kit-check -> /kit-test -> /kit-pack.\n\n## Delivery Contents Gate\nIncluded: app.\nExcluded: production deployment.\nKnown risks: demo only.\nEvidence: reports and screenshots.\n", "utf8");
+  fs.writeFileSync(path.join(project, "HANDOFF.md"), "# Handoff\n\nThis mainland China customer handoff is intentionally English to prove the gate blocks it.\n", "utf8");
+  fs.writeFileSync(path.join(project, ".plan", "PRD.md"), "# PRD\n\nThis is an English PRD for a mainland China delivery and should be blocked by /kit-test.\n", "utf8");
+  fs.writeFileSync(path.join(project, ".plan", "SPEC.md"), "# SPEC\n\nThis English SPEC mentions WeChat, Alipay, ICP, delivery evidence, and customer handoff.\n", "utf8");
+  fs.writeFileSync(path.join(project, ".plan", "CHECKLIST.md"), "# CHECKLIST\n\n- [x] Implement app\n- [x] Run tests\n", "utf8");
+  fs.mkdirSync(path.join(project, "docs", "ui-ux"), { recursive: true });
+  fs.writeFileSync(path.join(project, "docs", "ui-ux", "ACCEPTANCE.md"), "# UI Acceptance\n\nDesktop, mobile, empty, success, and error screenshots captured.\n", "utf8");
+  fs.mkdirSync(path.join(project, ".test", "ai", "reports"), { recursive: true });
+  fs.writeFileSync(path.join(project, ".test", "ai", "reports", "four-role-review.md"), "# Four-role Review\n\n| Role | Score | Judgment |\n| --- | ---: | --- |\n| PM | 95 | Pass. |\n| Code | 95 | Pass. |\n| Frontend | 95 | Pass. |\n| Backend | 95 | Pass. |\n", "utf8");
+  fs.writeFileSync(path.join(project, ".test", "ai", "reports", "acceptance-20260601.md"), "# Acceptance\n\nEnglish acceptance report for mainland China handoff.\n", "utf8");
+  for (const rel of [
+    ".test/ai/evidence/desktop.png",
+    ".test/ai/evidence/mobile.png",
+    ".test/ai/evidence/state-empty.png",
+    ".test/ai/evidence/mobile-state-empty.png",
+    ".test/ai/evidence/state-success.png",
+    ".test/ai/evidence/mobile-state-success.png"
+  ]) {
+    fs.mkdirSync(path.dirname(path.join(project, rel)), { recursive: true });
+    fs.writeFileSync(path.join(project, rel), "evidence", "utf8");
+  }
+  fs.writeFileSync(path.join(project, ".kit", "check-state.json"), JSON.stringify({ decision: "go" }, null, 2), "utf8");
+  const result = run(["test", "--cwd", project, "--json"]);
+  assert(result.code === 2, `English mainland docs should block /kit-test, got ${result.code}`);
+  const payload = parseJson(result.stdout, "blocked chinese docs payload");
+  assert(payload.gates.chinese_delivery_docs.required === true, "Chinese docs gate should be required for mainland handoff");
+  assert(payload.gates.chinese_delivery_docs.ok === false, "Chinese docs gate should fail for English-first docs");
+});
+
+test("kit-test blocks report-style root README", () => {
+  const project = path.join(tmpRoot, "report-readme-app");
+  const init = run(["init", "--cwd", project, "--owner", "tester", "--level", "2", "--host", "generic", "--skip-brainstorm", "--with-user"]);
+  assert(init.code === 0, `init failed: ${init.stderr}`);
+  fs.writeFileSync(path.join(project, "package.json"), JSON.stringify({ scripts: { test: "node --version" } }, null, 2), "utf8");
+  fs.writeFileSync(path.join(project, "README.md"), "# report-readme-app\n\n## Phase Start\n\n阶段: plan。\n\n## Requirement-to-Run Handoff\n\n已确认需求: 中文客户交付。\n\n## 验收报告\n\n四角色评审和验收证据都写在 README 里，这是错误示例。\n", "utf8");
+  fs.writeFileSync(path.join(project, "HANDOFF.md"), zhHandoff, "utf8");
+  fs.writeFileSync(path.join(project, ".plan", "PRD.md"), zhPrd, "utf8");
+  fs.writeFileSync(path.join(project, ".plan", "SPEC.md"), zhSpec, "utf8");
+  fs.writeFileSync(path.join(project, ".plan", "CHECKLIST.md"), zhChecklist, "utf8");
+  fs.mkdirSync(path.join(project, "docs", "ui-ux"), { recursive: true });
+  fs.writeFileSync(path.join(project, "docs", "ui-ux", "ACCEPTANCE.md"), zhUiAcceptance, "utf8");
+  fs.mkdirSync(path.join(project, ".test", "ai", "reports"), { recursive: true });
+  fs.writeFileSync(path.join(project, ".test", "ai", "reports", "four-role-review.md"), zhFourRoleReview, "utf8");
+  fs.writeFileSync(path.join(project, ".test", "ai", "reports", "acceptance-20260601.md"), zhAcceptanceReport, "utf8");
+  for (const rel of [
+    ".test/ai/evidence/desktop.png",
+    ".test/ai/evidence/mobile.png",
+    ".test/ai/evidence/state-empty.png",
+    ".test/ai/evidence/mobile-state-empty.png",
+    ".test/ai/evidence/state-success.png",
+    ".test/ai/evidence/mobile-state-success.png"
+  ]) {
+    fs.mkdirSync(path.dirname(path.join(project, rel)), { recursive: true });
+    fs.writeFileSync(path.join(project, rel), "evidence", "utf8");
+  }
+  fs.writeFileSync(path.join(project, ".kit", "check-state.json"), JSON.stringify({ decision: "go" }, null, 2), "utf8");
+  const result = run(["test", "--cwd", project, "--json"]);
+  assert(result.code === 2, `report-style README should block /kit-test, got ${result.code}`);
+  const payload = parseJson(result.stdout, "blocked README guide payload");
+  assert(payload.gates.readme_user_guide.ok === false, "README user guide gate should fail");
+  assert(payload.gates.readme_user_guide.forbidden_phrases.includes("Phase Start"), "README gate should report Phase Start");
 });
 
 test("scan limits are reported when recursive scan is capped", () => {

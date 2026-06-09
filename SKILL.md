@@ -171,6 +171,8 @@ Knowledge-base and agent projects need self-supervision: retrieval/eval quality,
 - Session Boundary：阶段结束要写清当前状态、未完成项、验证结果和下一步，避免跨会话状态污染。
 - Phase Report Gate：每个阶段启动必须输出 Phase Start，结束必须输出 Phase Closure；需求确认后必须输出 Requirement-to-Run Handoff。
 - Delivery Contents Gate：验收、打包、归档或交接前必须确认交付内容物；这是最高优先级交接门。
+- Chinese Delivery Docs Gate：面向中国大陆客户或中文用户的 V1 交付包，`README.md`、`HANDOFF.md`、`.plan/`、UI 验收和验收报告必须中文优先；命令、路径、API 字段和必要英文术语可以保留英文。
+- README User Guide Gate：根目录 `README.md` 必须是用户指南和 GitHub 首页入口，不能写成 Phase Start/Closure、Requirement-to-Run Handoff、验收报告或四角色评分报告。报告放 `.test/ai/reports/`，交接放 `HANDOFF.md`，产品/技术事实放 `.plan/`。
 - Commercial Delivery Gate：商业项目必须通过商业交付检查、四重 95 分评审、UI 商业质量和大陆场景检查（如适用）。
 - P0 findings block progress until fixed.
 - P1 findings require explicit user acknowledgment before continuing.

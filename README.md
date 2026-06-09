@@ -44,6 +44,8 @@ KIT v2.0 提供八个命令，覆盖产品到开发的完整闭环：
 
 交付前最重要的是 `Delivery Contents Gate`：在 `/kit-test`、`/kit-pack`、归档或交接前，必须确认“交付内容物”。至少列出包含什么、不包含什么、证据在哪里、怎么运行/打开、已知风险是什么。用户未确认内容物时，不得声称可交付。
 
+面向中国大陆客户或中文用户的交付包必须通过 `Chinese Delivery Docs Gate`：`README.md`、`HANDOFF.md`、`.plan/PRD.md`、`.plan/SPEC.md`、`.plan/CHECKLIST.md`、`docs/ui-ux/ACCEPTANCE.md`、验收报告和四角色报告必须中文优先。命令、路径、API 字段和必要英文术语可以保留英文，但不能让客户交付物变成英文模板。
+
 商业项目还必须通过商业交付门：`quality/commercial-delivery.md`、`quality/four-role-review.md`、`quality/current-verdict-2026-06-01.md`、`knowledge/ui-commercial-2026.md` 和按需使用的 `knowledge/china-mainland-delivery.md`。重大交付要经过 Top PM、Top Code Engineer、Top Frontend Engineer、Backend Framework Engineer 四重评审，每项都必须 ≥95 分才算通过。
 
 知识库、RAG、智能体或自动化 workflow 必须记录自我督导策略：检索/eval 质量、来源新鲜度、工具调用 schema 校验、循环限制、成本/延迟预算、trace 脱敏、回归案例和失败回滚。
@@ -455,6 +457,7 @@ node C:\tools\kit-skills\bin\spec-loop-kit.mjs init --cwd D:\projects\my-claude-
 - `.workflow/`：统一管理当前可恢复入口、host preset、流程说明、脚本和历史 workflow 合同。
 - `docs/`：只放架构、UI/UX 等稳定说明，不再放测试包和 workflow。
 - `README.md`：只放根目录，作为用户和仓库首页入口。不要新建 `.plan/README.md`。
+- `README.md` 必须是 **用户指南**，不是阶段报告、验收报告或交接报告。它应该说明项目是什么、适合谁、怎么安装/运行、怎么使用、怎么测试、目录结构、常见问题和生产化前注意事项。`Phase Start`、`Phase Closure`、`Requirement-to-Run Handoff`、详细验收结论和四角色评分应放在 `.plan/`、`HANDOFF.md`、`.test/ai/reports/` 或 `.workflow/`，不要塞进 README。
 - `.test/`：放测试包、验收包、交付证据和用户反馈。它在项目根目录，不进源码目录，也不放框架自动发现的测试代码。
 - `.test/ai/`：AI 自检、dry-run、打包证明、自动化日志。
 - `.test/user/`：给真实用户的测试包、安装说明、验收表、反馈表和用户返回证据。
@@ -956,6 +959,7 @@ npm pack --dry-run
 - `/kit-loop` 增加 `KIT_LOOP_DEPTH`、`.kit/kit.lock`、最大轮次/时长和 blocker pointer-only 规则，降低递归与并发交错风险。
 - `spec-loop-kit.mjs` 增加 JSON 解析错误报告和递归扫描上限，避免坏配置被静默忽略或大仓库扫描失控。
 - 合同测试增至 12 条，覆盖坏 JSON 和扫描上限；Codex 与 Claude Code 两侧 `npm run check:all` 均通过。
+- 修正中文交付漂移：大陆/中文客户交付场景在 `/kit-test` 阶段强制检查中文优先 README、HANDOFF、计划文档、UI 验收和验收报告，防止英文模板进入 V1 交付包。
 
 ## License
 

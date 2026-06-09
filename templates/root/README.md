@@ -8,6 +8,8 @@
 
 ## 当前概况
 
+这是项目的用户指南和仓库首页入口。它只写给使用者和接手者阅读，不承担阶段报告、验收报告或交接报告职责。
+
 - 产品事实: `.plan/PRD.md`
 - 技术契约: `.plan/SPEC.md`
 - 任务与证据: `.plan/CHECKLIST.md`
@@ -27,6 +29,8 @@
 如果本 README 与 `.plan/` 中的内容冲突，先更新过时的文件，再实施变更。
 
 根目录的 `README.md` 是唯一项目 README。不要添加 `.plan/README.md`。
+
+不要把 `Phase Start`、`Phase Closure`、`Requirement-to-Run Handoff`、详细验收报告或四角色评分写进 README。阶段报告放 `.test/ai/reports/`，交接说明放 `HANDOFF.md`，产品和技术事实放 `.plan/`。
 
 测试材料应归入 `.test/`，而不是放在根目录的松散 Markdown 文件中。
 

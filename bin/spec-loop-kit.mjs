@@ -641,7 +641,7 @@ function checkNameConsistency(cwd, report) {
 
   let readmeName = null;
   const readme = readText(cwd, "README.md");
-  const readmeMatch = readme.match(/^#\s+(.+?)(?:\s*[-—|]\s*|\s*$)/m);
+  const readmeMatch = readme.match(/^#\s+(.+?)(?:\s+(?:[—|])\s+|\s*$)/m);
   if (readmeMatch) {
     readmeName = readmeMatch[1].trim();
   }
@@ -654,7 +654,10 @@ function checkNameConsistency(cwd, report) {
   if (names.length >= 2) {
     const normalize = (s) => s.toLowerCase().replace(/[\s\-_]+/g, "");
     const firstNorm = normalize(names[0].name);
-    const mismatches = names.filter((n) => normalize(n.name) !== firstNorm);
+    const mismatches = names.filter((n) => {
+      const current = normalize(n.name);
+      return current !== firstNorm && !(n.source === "README 标题" && current.startsWith(firstNorm));
+    });
     if (mismatches.length > 0) {
       const details = names.map((n) => `${n.source}: "${n.name}"`).join(" | ");
       addIssue(report, "p1", "name-inconsistency", `项目名称不一致: ${details}`, "README.md / .git/config", "统一文件夹名、Git 仓库名和 README 标题中的项目名称。");
@@ -2547,6 +2550,90 @@ function stateScreenshotGate(cwd) {
   };
 }
 
+function cjkCount(text) {
+  return (text.match(/[\u3400-\u9fff]/g) || []).length;
+}
+
+function latinWordCount(text) {
+  const scrubbed = text
+    .replace(/```[\s\S]*?```/g, " ")
+    .replace(/`[^`]+`/g, " ")
+    .replace(/https?:\/\/\S+/g, " ")
+    .replace(/[A-Za-z]:\\[^\s]+/g, " ");
+  return (scrubbed.match(/[A-Za-z]{3,}/g) || []).length;
+}
+
+function hasMainlandDeliverySignal(cwd) {
+  const corpus = [
+    readText(cwd, "README.md"),
+    readText(cwd, "HANDOFF.md"),
+    readText(cwd, ".plan/PRD.md"),
+    readText(cwd, ".plan/SPEC.md"),
+    readText(cwd, "docs/ui-ux/ACCEPTANCE.md")
+  ].join("\n");
+  return /中国大陆|大陆|mainland\s+China|WeChat|微信|支付宝|Alipay|ICP|小程序|短信|中文交付|客户交接/i.test(corpus);
+}
+
+function chineseDeliveryDocsGate(cwd) {
+  const required = [
+    "README.md",
+    "HANDOFF.md",
+    ".plan/PRD.md",
+    ".plan/SPEC.md",
+    ".plan/CHECKLIST.md",
+    "docs/ui-ux/ACCEPTANCE.md",
+    exists(cwd, `.test/ai/reports/acceptance-${todayStamp()}.md`) ? `.test/ai/reports/acceptance-${todayStamp()}.md` : ".test/ai/reports/acceptance-20260601.md",
+    ".test/ai/reports/four-role-review.md"
+  ];
+  const requiredWhenMainland = hasMainlandDeliverySignal(cwd);
+  const files = required.map((rel) => {
+    const text = readText(cwd, rel);
+    const cjk = cjkCount(text);
+    const latin = latinWordCount(text);
+    return {
+      file: rel,
+      exists: exists(cwd, rel),
+      cjk_chars: cjk,
+      latin_words: latin,
+      chinese_first: cjk >= 80 && cjk >= latin * 2
+    };
+  });
+  return {
+    required: requiredWhenMainland,
+    ok: !requiredWhenMainland || files.every((item) => item.exists && item.chinese_first),
+    files,
+    rule: "Mainland/customer-facing V1 handoff docs must be Simplified Chinese first; commands, paths, API names, and required English terms may remain English."
+  };
+}
+
+function readmeUserGuideGate(cwd) {
+  const rel = "README.md";
+  const text = readText(cwd, rel);
+  const forbidden = [
+    [/^#{2,6}\s*Phase Start\b/im, "Phase Start"],
+    [/^#{2,6}\s*Phase Closure\b/im, "Phase Closure"],
+    [/^#{2,6}\s*Requirement-to-Run Handoff\b/im, "Requirement-to-Run Handoff"],
+    [/^#{2,6}\s*需求到执行交接\b/im, "需求到执行交接"],
+    [/^#{2,6}\s*四角色评审\b/im, "四角色评审"],
+    [/^#{2,6}\s*验收报告\b/im, "验收报告"]
+  ].filter(([pattern]) => pattern.test(text)).map(([, label]) => label);
+  const guideSignals = [
+    /快速开始|运行方式|安装|启动/i,
+    /怎么使用|使用方法|功能|Usage/i,
+    /测试|Test/i,
+    /项目结构|目录结构|Structure/i
+  ];
+  const presentSignals = guideSignals.filter((pattern) => pattern.test(text)).length;
+  return {
+    file: rel,
+    exists: exists(cwd, rel),
+    ok: exists(cwd, rel) && forbidden.length === 0 && presentSignals >= 3,
+    forbidden_phrases: forbidden,
+    guide_signal_count: presentSignals,
+    rule: "Root README must be a user guide / GitHub landing page, not a phase report, acceptance report, or handoff report."
+  };
+}
+
 function requiredEvidence(cwd) {
   const todayAcceptance = `.test/ai/reports/acceptance-${todayStamp()}.md`;
   const files = [
@@ -2565,11 +2652,15 @@ function requiredEvidence(cwd) {
   const requiredFiles = files.map((rel) => ({ file: rel, exists: exists(cwd, rel) }));
   const fourRole = parseFourRoleReview(cwd);
   const states = stateScreenshotGate(cwd);
+  const chineseDocs = chineseDeliveryDocsGate(cwd);
+  const readmeGuide = readmeUserGuideGate(cwd);
   return {
     files: requiredFiles,
     four_role_review: fourRole,
     state_screenshots: states,
-    ok: requiredFiles.every((item) => item.exists) && fourRole.ok && states.ok
+    chinese_delivery_docs: chineseDocs,
+    readme_user_guide: readmeGuide,
+    ok: requiredFiles.every((item) => item.exists) && fourRole.ok && states.ok && chineseDocs.ok && readmeGuide.ok
   };
 }
 
@@ -2716,7 +2807,9 @@ function handleTestCommand(args) {
       executable_commands_passed: commandsOk,
       missing_evidence: missingEvidence,
       four_role_review: evidence.four_role_review,
-      state_screenshots: evidence.state_screenshots
+      state_screenshots: evidence.state_screenshots,
+      chinese_delivery_docs: evidence.chinese_delivery_docs,
+      readme_user_guide: evidence.readme_user_guide
     },
     commands: commandRecords,
     evidence: {
