@@ -233,7 +233,7 @@ Rules:
 
 ## Parallel Execution
 
-Use Claude Code's native Agent tool for parallel task execution:
+Use Claude Code's native Agent tool for parallel task execution. When the `/kit-run` task is already clear, independent, and acceptance can be checked per item, parallel execution is the default acceleration path instead of serial one-by-one execution:
 
 ```
 Agent tool with isolation:"worktree" or explicit cwd
@@ -246,6 +246,20 @@ Rules:
 - Agents work in `project-eval/` sandbox, never in the main project directly.
 - Merge results back to main project only after `/kit-check` passes.
 - Maximum recommended parallel agents: 3 for standard projects, 5 for deep projects.
+- Main Codex/KIT window remains the control tower: it splits work, assigns owners, tracks logs/evidence, compares outputs to SPEC, resolves conflicts, and performs final verification.
+- Use parallel agents for image generation, batch assets, independent pages/components, independent review shards, data collection, and repetitive content-production tasks.
+- Do not parallelize unclear requirements, shared-file collisions, singleton login/session/API quota paths, destructive operations, missing human/platform gates, or live publish/send actions.
+- Every parallel run records `run_id`, owner, cwd/worktree, assigned checklist items, touched paths, evidence path, merge rule, and conflict gate.
+
+### Image / Batch Asset Acceleration
+
+For image generation or batch visual production, do not request assets one by one when the content is already clear.
+
+1. Freeze the generation spec first: asset list, prompt rules, size/aspect ratio, style constraints, storage path, naming convention, and approval gate.
+2. Split work by scene, asset type, character/background/cover group, or numbered batch.
+3. Give each agent an isolated output folder such as `_pending/<run_id>/<batch>` or another generated-output folder defined by SPEC.
+4. Require each agent to return generated file paths, source prompts, failed items, cost/quota notes, and a contact sheet or equivalent visual evidence.
+5. Main window reviews consistency, detects duplicate/missing assets, merges approved outputs, and records remaining risks before `/kit-check`.
 
 ---
 

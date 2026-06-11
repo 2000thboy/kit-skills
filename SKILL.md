@@ -1,6 +1,6 @@
 ---
 name: kit-skills
-description: USE WHEN user wants to turn product ideas into structured development plans — brainstorm, 建档 (init project structure), 归档 (archive), or manage PRD/SPEC/CHECKLIST. NOT a code generator. NOT for single-file edits or "just write code" requests.
+description: USE WHEN user wants to turn product ideas into structured development plans — brainstorm, 建档 (init project structure), 归档 (archive), or manage PRD/SPEC/CHECKLIST. NOT a one-off code generator for vague "just write code" requests; /kit-run implements confirmed plans with acceptance gates and handoff contracts. For single-file edits or "skip planning" pressure, direct edit is preferred unless risk is high.
 argument-hint: "[/kit|/kit-new|/kit-status|/kit-run|/kit-check|/kit-loop|/kit-pack|/kit-test] or helper: [init|validate|audit|checklist|run|check|loop|sync] [--level 0|1|2|3|4] [--profile auto|generic-project|frontend-ui|long-content-publishing|archive-cleanup|skill-package] [--template default|data-ml|fullstack] [--host auto|generic|codex|claude|opencode|agents] [--owner <name>] [--cwd <path>] [--force] [--json] [--workflow] [--experiment] [--with-test] [--with-eval] [--with-cron] [--with-user] [--with-soul] [--long-task] [--skip-brainstorm]"
 ---
 
@@ -125,6 +125,17 @@ After requirements are confirmed, KIT must not jump directly into coding. It mus
 2. **Requirement review**: all confirmed requirements, open questions, scope risks, and PM audit result.
 3. **Execution plan**: ordered task list, first task, files likely touched, verification command, owner/agent route.
 4. **Command bridge**: exact next command, usually `/kit-run start`; if not ready, route to `/kit-check`, `/kit-status`, or more `/kit brainstorm`.
+
+## Kitrun Acceleration Defaults
+
+When `/kit-run` input is clear enough, tasks are independent, and acceptance can be checked per item, default to parallel sub-agents instead of slow serial execution.
+
+- Main Codex/KIT window acts as orchestrator and reviewer: split tasks, assign owner, choose worktree/cwd, require logs/evidence, merge only after checks pass.
+- Prefer parallel execution for image generation, batch assets, independent pages/components, independent review shards, data collection, and repetitive content-production tasks.
+- For image generation, freeze generation points, prompt/spec, size, storage path, naming, and approval gate first; then split by scene, asset type, or batch. Each agent writes to an isolated `_pending` or generated-output folder and returns a contact sheet or evidence path.
+- Keep normal limits: up to 3 parallel agents for standard projects and up to 5 for deep projects unless the user explicitly approves more.
+- Do not parallelize when requirements are unclear, files will collide, credentials/session state is singleton, a platform/human gate is still missing, destructive operations are involved, or live publish/send actions are in scope.
+- Every parallel run must record `run_id`, owner, cwd/worktree, assigned checklist items, touched paths, evidence path, merge rule, and conflict gate.
 
 ## Delivery Contents Gate
 
